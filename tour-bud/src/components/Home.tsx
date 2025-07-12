@@ -26,7 +26,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   const mainCards = [
     {
       id: 'talk',
-      title: 'Create New Tour',
+      title: 'Craft New Tour',
       subtitle: "Customized for your interests and location",
       icon: <Sparkles size={24} />,
       onClick: () => navigate('/location'),
