@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd tour-bud && npm run build",
-  "outputDirectory": "tour-bud/build",
-  "installCommand": "cd tour-bud && npm install"
-} 
