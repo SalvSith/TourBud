@@ -377,46 +377,17 @@ cd tour-bud
 5. Select interests
 6. Watch AI generate your tour!
 
-## 📱 Mobile Testing Requirements
-
-### HTTPS is Required for Mobile Location Access
-- **Development**: Use `https://localhost:3000` instead of `http://localhost:3000`
-- **Production**: Always deploy to HTTPS (Netlify, Vercel, etc.)
-- **Local HTTPS Setup**: 
-  ```bash
-  # In your package.json scripts:
-  "start": "HTTPS=true react-scripts start"
-  ```
-
-### Mobile Safari Specific Notes
-- ✅ **Fixed**: Location permission now requires user interaction (tap the "Use My Current Location" button)
-- ✅ **Fixed**: Better error handling for permission denied scenarios
-- ✅ **Fixed**: Automatic fallback to manual address entry if geolocation fails
-- ⚠️ **Important**: Test on actual mobile devices, not just desktop browser dev tools
-
-### Testing Workflow
-1. **Desktop**: Location requests automatically on page load
-2. **Mobile**: Shows "Use My Current Location" button for user interaction
-3. **Fallback**: Manual address entry with Google Places autocomplete
-4. **Error Handling**: Clear messages for permission denied, timeout, or unavailable scenarios
-
 ## 🚨 Quick Notes:
 - **Essential functions**: geocode, get-map-url, places-autocomplete for core location features
 - Other functions (get-places, generate-tour, get-tour) can be added later for full tour generation
 - The frontend gracefully handles missing functions with fallbacks
 - **NEW**: Map screenshots now use server-side API for better security
 - **NEW**: Address autocomplete provides Google Places suggestions as you type
-- **FIXED**: Mobile Safari location permission issues resolved
 
 ## 📞 Need Help?
 If functions don't deploy:
-1. Try manual deployment first (copy/paste code)
-2. Check API keys are set in Supabase dashboard
-3. Verify HTTPS is enabled for mobile testing
-4. Check browser console for specific error messages
+1. All Edge Function code is in `supabase/functions/` folders
+2. Copy-paste manually into Supabase dashboard
+3. Or wait for Docker to start and run `./deploy-functions.sh`
 
-The enhanced mobile experience includes:
-- Smart device detection
-- User-friendly permission requests
-- Better error messaging
-- Seamless fallback to manual entry 
+**You're almost there! 🚀** 

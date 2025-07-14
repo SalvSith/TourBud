@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Loader } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
@@ -26,9 +26,6 @@ const LocationConfirm: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
-  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
-  const [showLocationButton, setShowLocationButton] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +33,7 @@ const LocationConfirm: React.FC = () => {
   const [lastCoordinates, setLastCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   // Store the original current location to revert to when clicking outside
   const [currentLocation, setCurrentLocation] = useState('');
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   // Add spinner animation styles
   useEffect(() => {
@@ -54,19 +52,8 @@ const LocationConfirm: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Check if geolocation is available and try to get location automatically
-    // But only for desktop browsers, not mobile
-    const isDesktop = !(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    
-    if (isDesktop) {
-      // For desktop, try to get location automatically
-      getCurrentLocation(false);
-    } else {
-      // For mobile, show the location request button
-      setShowLocationButton(true);
-      // Show default map but leave input empty for manual entry
-      fetchMapUrl('New York, NY');
-    }
+    // Show default map but don't auto-request location (required for mobile Safari)
+    fetchMapUrl('New York, NY');
   }, []);
 
   // Handle clicks outside the input/suggestions to close dropdown and reset to current location
@@ -97,21 +84,15 @@ const LocationConfirm: React.FC = () => {
   }, [currentLocation, location]);
 
   // Function to get user's current location
-  const getCurrentLocation = (isManualRequest: boolean = true) => {
+  const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       console.warn('Geolocation is not supported by this browser');
       setError('Geolocation is not supported by this browser');
-      setShowLocationButton(false);
-      // Show default map but leave input empty for manual entry
-      fetchMapUrl('New York, NY');
       return;
     }
 
-    if (isManualRequest) {
-      setIsRequestingLocation(true);
-      setHasRequestedLocation(true);
-      setError('');
-    }
+    setIsRequestingLocation(true);
+    setError('');
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -141,60 +122,57 @@ const LocationConfirm: React.FC = () => {
                 fetchMapUrl(geocodeData.formattedAddress);
               } else {
                 // Fallback to coordinates if no formatted address
+                setLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                setCurrentLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
                 fetchMapUrl(`${latitude},${longitude}`);
               }
             } else {
               // Fallback to coordinates if geocoding fails
+              setLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+              setCurrentLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
               fetchMapUrl(`${latitude},${longitude}`);
             }
           } catch (geocodeError) {
             console.warn('Geocoding failed, using coordinates:', geocodeError);
             // Fallback to coordinates if geocoding fails
+            setLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+            setCurrentLocation(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
             fetchMapUrl(`${latitude},${longitude}`);
           }
           
-          setShowLocationButton(false);
-          setError('');
         } catch (err) {
           console.error('Failed to process location:', err);
-          setError('Failed to process location. Please try again or enter manually.');
-          // Show default map but leave input empty for manual entry
-          fetchMapUrl('New York, NY');
+          setError('Failed to process location');
+        } finally {
+          setIsRequestingLocation(false);
         }
       },
       (error) => {
         console.warn('Unable to retrieve location:', error);
+        setIsRequestingLocation(false);
         
-        // Provide specific error messages for different error types
+        // More specific error messages
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setError('Location access denied. Please enable location permissions or enter your address manually.');
+            setError('Location access denied. Please allow location access and try again.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setError('Location information is unavailable. Please enter your address manually.');
+            setError('Location information is unavailable. Please enter your location manually.');
             break;
           case error.TIMEOUT:
-            setError('Location request timed out. Please try again or enter your address manually.');
+            setError('Location request timed out. Please try again.');
             break;
           default:
-            setError('Unable to retrieve location. Please enter your address manually.');
+            setError('An error occurred while retrieving your location. Please enter it manually.');
             break;
         }
-        
-        setShowLocationButton(true);
-        // Show default map but leave input empty for manual entry
-        fetchMapUrl('New York, NY');
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout for mobile
+        timeout: 10000,
         maximumAge: 60000
       }
     );
-    
-    if (isManualRequest) {
-      setIsRequestingLocation(false);
-    }
   };
 
   // Function to fetch map URL from server
@@ -384,11 +362,6 @@ const LocationConfirm: React.FC = () => {
     }
   };
 
-  // Handle manual location request button click
-  const handleRequestLocation = () => {
-    getCurrentLocation(true);
-  };
-
   return (
     <div className="app">
       <div className="header">
@@ -406,6 +379,56 @@ const LocationConfirm: React.FC = () => {
           <div className="text-center mb-4">
             <h2>Set Your Tour Area</h2>
             <p>Where do you want your tour to focus on?</p>
+          </div>
+
+          {/* Use My Location Button */}
+          <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+            <button
+              onClick={getCurrentLocation}
+              disabled={isRequestingLocation}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                backgroundColor: isRequestingLocation ? 'var(--secondary-color)' : 'var(--primary-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              {isRequestingLocation ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  Getting location...
+                </>
+              ) : (
+                <>
+                  <MapPin size={16} />
+                  Use My Location
+                </>
+              )}
+            </button>
+            <p style={{ 
+              fontSize: '12px', 
+              color: 'var(--text-secondary)',
+              marginTop: '8px',
+              marginBottom: '0'
+            }}>
+              Or enter your location manually in the search box below
+            </p>
           </div>
 
           {/* Google Maps Preview */}
@@ -469,7 +492,7 @@ const LocationConfirm: React.FC = () => {
                 fontSize: '14px'
               }}>
                 <MapPin size={24} style={{ marginBottom: '8px' }} />
-                <div>Enter an address to see map</div>
+                <div>Click "Use My Location" or enter an address</div>
                 <div style={{ fontSize: '12px', marginTop: '4px' }}>
                   Search for streets, neighborhoods, landmarks
                 </div>
@@ -506,24 +529,40 @@ const LocationConfirm: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center'
               }}>
-                <MapPin 
-                  size={18} 
-                  onClick={() => getCurrentLocation(true)}
+                <div
+                  onClick={!isRequestingLocation ? getCurrentLocation : undefined}
                   style={{
                     position: 'absolute',
                     left: '16px',
-                    color: 'var(--text-secondary)',
                     zIndex: 1,
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease'
+                    cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
+                    transition: 'color 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '18px',
+                    height: '18px'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--primary-color)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                />
+                >
+                  {isRequestingLocation ? (
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid var(--border-color)',
+                      borderTop: '2px solid var(--primary-color)',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                  ) : (
+                    <MapPin 
+                      size={18} 
+                      style={{
+                        color: 'var(--primary-color)',
+                        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                      }}
+                    />
+                  )}
+                </div>
                 <input
                   ref={inputRef}
                   type="text"
@@ -544,7 +583,7 @@ const LocationConfirm: React.FC = () => {
                     transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                     boxShadow: showSuggestions ? '0 4px 20px rgba(99, 102, 241, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)'
                   }}
-                  placeholder="Search for your address, neighborhood, or landmark..."
+                  placeholder="Enter your address, neighborhood, or landmark..."
                 />
                 
                 {isLoadingSuggestions && (
@@ -632,39 +671,6 @@ const LocationConfirm: React.FC = () => {
               )}
             </div>
           </div>
-
-          {showLocationButton && (
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <button 
-                className="btn btn-secondary"
-                onClick={handleRequestLocation}
-                disabled={isRequestingLocation}
-                style={{
-                  opacity: isRequestingLocation ? 0.5 : 1,
-                  cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  margin: '0 auto'
-                }}
-              >
-                {isRequestingLocation ? (
-                  <div style={{
-                    width: '18px',
-                    height: '18px',
-                    border: '2px solid var(--border-color)',
-                    borderTop: '2px solid var(--primary-color)',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                ) : (
-                  <MapPin size={18} />
-                )}
-                <span>{isRequestingLocation ? 'Requesting Location...' : 'Use My Current Location'}</span>
-              </button>
-            </div>
-          )}
 
           <p style={{ 
             textAlign: 'center', 
