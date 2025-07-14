@@ -7,18 +7,31 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Function to get initial theme from localStorage
+const getInitialTheme = (): boolean => {
+  try {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  } catch (error) {
+    // Fallback to light mode if localStorage is not available
+    return false;
+  }
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialize state with value from localStorage
+  const [isDarkMode, setIsDarkMode] = useState(getInitialTheme);
 
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
 
   useEffect(() => {
-    // Check for saved theme preference or default to 'light'
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
+    // Apply initial theme immediately to prevent flash
+    if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
     }
     
     // Prevent initial animation flicker
@@ -33,12 +46,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Apply theme to document with smoother transition
     document.documentElement.style.setProperty('--transition-duration', '0.3s');
     
-    if (isDarkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
+    try {
+      if (isDarkMode) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+      }
+    } catch (error) {
+      console.warn('Failed to save theme preference to localStorage:', error);
     }
   }, [isDarkMode]);
 

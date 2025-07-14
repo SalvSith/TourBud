@@ -8,7 +8,7 @@ const Login: React.FC = () => {
 
   const handleGoogleLogin = () => {
     // Placeholder for Google login functionality
-    console.log('Google login clicked');
+
   };
 
   return (

@@ -77,7 +77,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
     
     setLoading(true);
     
-    // Simulate API call delay
+    // Reduced delay for better UX - simulating faster API response
     setTimeout(() => {
       const currentCount = nearbyTours.length;
       const nextBatch = additionalTours.slice(currentCount - 4, currentCount);
@@ -87,13 +87,14 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
       }
       
       setLoading(false);
-    }, 1000);
+    }, 300); // Reduced from 1000ms to 300ms
   }, [loading, nearbyTours.length, additionalTours]);
 
   const handleScroll = useCallback(() => {
     const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
     
-    if (scrollHeight - scrollTop <= clientHeight + 100 && !loading && nearbyTours.length < 12) {
+    // Increased trigger distance for earlier loading
+    if (scrollHeight - scrollTop <= clientHeight + 300 && !loading && nearbyTours.length < 12) {
       loadMoreTours();
     }
   }, [loading, nearbyTours.length, loadMoreTours]);
@@ -119,7 +120,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
 
   const handleLogout = () => {
     // Placeholder for logout functionality
-    console.log('Logging out...');
+
     setIsDropdownOpen(false);
     navigate('/login');
   };
@@ -548,52 +549,137 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
           </div>
 
           <div>
-            {nearbyTours.map((tour: NearbyTour, index: number) => (
-              <motion.div
-                key={tour.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                onClick={() => navigate(`/tour/${tour.id}`)}
-                style={{
-                  padding: '16px',
-                  backgroundColor: 'var(--card-background)',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-sm)',
-                  marginBottom: index === nearbyTours.length - 1 ? '0' : '16px'
-                }}
-                className="tour-list-item-motion"
-              >
-                <div style={{ marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '18px', marginBottom: 0 }}>{tour.title}</h3>
-                </div>
-                
-                <p style={{ 
-                  fontSize: '14px', 
-                  color: 'var(--text-secondary)',
-                  marginBottom: '12px',
-                  lineHeight: '1.4'
-                }}>
-                  {tour.description}
-                </p>
-                
-                <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)' }}>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <MapPin size={16} />
-                    <span style={{ fontSize: '14px' }}>{tour.distance}</span>
+            {nearbyTours.map((tour: NearbyTour, index: number) => {
+              // Only add staggered delay for initial cards (first 4), new cards should animate immediately
+              const isInitialCard = index < 4;
+              const animationDelay = isInitialCard ? 0.5 + index * 0.1 : 0;
+              
+              return (
+                <motion.div
+                  key={tour.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: animationDelay }}
+                  onClick={() => navigate(`/tour/${tour.id}`)}
+                  style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--card-background)',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-sm)',
+                    marginBottom: index === nearbyTours.length - 1 ? '0' : '16px'
+                  }}
+                  className="tour-list-item-motion"
+                >
+                  <div style={{ marginBottom: '8px' }}>
+                    <h3 style={{ fontSize: '18px', marginBottom: 0 }}>{tour.title}</h3>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <Clock size={16} />
-                    <span style={{ fontSize: '14px' }}>{tour.duration} min</span>
+                  
+                  <p style={{ 
+                    fontSize: '14px', 
+                    color: 'var(--text-secondary)',
+                    marginBottom: '12px',
+                    lineHeight: '1.4'
+                  }}>
+                    {tour.description}
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <MapPin size={16} />
+                      <span style={{ fontSize: '14px' }}>{tour.distance}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <Clock size={16} />
+                      <span style={{ fontSize: '14px' }}>{tour.duration} min</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <Play size={16} />
+                      <span style={{ fontSize: '14px' }}>{tour.plays.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <Play size={16} />
-                    <span style={{ fontSize: '14px' }}>{tour.plays.toLocaleString()}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
+            
+            {/* Skeleton loading cards to prevent visual gap */}
+            {loading && (
+              <>
+                {[1, 2, 3, 4].map((skeletonIndex) => (
+                  <motion.div
+                    key={`skeleton-${skeletonIndex}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, delay: skeletonIndex * 0.05 }}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: 'var(--card-background)',
+                      borderRadius: '16px',
+                      marginBottom: skeletonIndex === 4 ? '0' : '16px',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    {/* Skeleton title */}
+                    <div style={{
+                      height: '20px',
+                      backgroundColor: 'var(--secondary-color)',
+                      borderRadius: '4px',
+                      marginBottom: '8px',
+                      width: '70%',
+                      animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
+                    
+                    {/* Skeleton description */}
+                    <div style={{
+                      height: '14px',
+                      backgroundColor: 'var(--secondary-color)',
+                      borderRadius: '4px',
+                      marginBottom: '4px',
+                      width: '90%',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                      animationDelay: '0.2s'
+                    }} />
+                    <div style={{
+                      height: '14px',
+                      backgroundColor: 'var(--secondary-color)',
+                      borderRadius: '4px',
+                      marginBottom: '12px',
+                      width: '75%',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                      animationDelay: '0.4s'
+                    }} />
+                    
+                    {/* Skeleton metadata */}
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{
+                        height: '14px',
+                        backgroundColor: 'var(--secondary-color)',
+                        borderRadius: '4px',
+                        width: '60px',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                        animationDelay: '0.6s'
+                      }} />
+                      <div style={{
+                        height: '14px',
+                        backgroundColor: 'var(--secondary-color)',
+                        borderRadius: '4px',
+                        width: '50px',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                        animationDelay: '0.8s'
+                      }} />
+                      <div style={{
+                        height: '14px',
+                        backgroundColor: 'var(--secondary-color)',
+                        borderRadius: '4px',
+                        width: '45px',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                        animationDelay: '1s'
+                      }} />
+                    </div>
+                  </motion.div>
+                ))}
+              </>
+            )}
             
             {loading && (
               <div style={{

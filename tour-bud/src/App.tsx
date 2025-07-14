@@ -6,6 +6,7 @@ import './App.css';
 import Home from './components/Home';
 import LocationConfirm from './components/LocationConfirm';
 import InterestSelect from './components/InterestSelect';
+import PlaceSelection from './components/PlaceSelection';
 import MyInterests from './components/MyInterests';
 import Account from './components/Account';
 import GeneratingTour from './components/GeneratingTour';
@@ -47,6 +48,7 @@ function App() {
           <Route path="/" element={<Home userName={user.name} credits={user.credits} />} />
           <Route path="/location" element={<LocationConfirm />} />
           <Route path="/interests" element={<InterestSelect />} />
+          <Route path="/places" element={<PlaceSelection />} />
           <Route path="/my-interests" element={<MyInterests />} />
           <Route path="/account" element={<Account />} />
           <Route path="/generating" element={<GeneratingTour />} />

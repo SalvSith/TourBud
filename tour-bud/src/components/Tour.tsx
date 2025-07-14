@@ -4,15 +4,28 @@ import { Play, Pause, ChevronRight, MapPin, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
+import { SUPABASE_CONFIG } from '../config/supabase';
 
 const Tour: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [timeRemaining, setTimeRemaining] = useState(45); // minutes
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
 
-  // Tour information
-  const tourInfo = {
+  // Get tour data from navigation state
+  const { tourData, location: tourLocation } = location.state || {};
+
+  // Use actual tour data or fallback to defaults
+  const tourInfo = tourData ? {
+    name: tourData.title,
+    description: tourData.description,
+    distance: tourData.distance,
+    duration: tourData.estimatedDuration,
+    plays: Math.floor(Math.random() * 2000) + 500 // Random play count for demo
+  } : {
     name: 'Historical Downtown Walk',
     description: 'Explore the city\'s founding stories and colonial architecture',
     distance: '0.8 mi',
@@ -20,23 +33,48 @@ const Tour: React.FC = () => {
     plays: 1247
   };
 
-  const tourContent = `We should start back," Gorod urged as the woods began to grow dark around them. "The wildlings are dead."
+  const currentLocation = tourLocation || '45 Smith Street, New York, NY';
 
-"Do the dead frighten you?" Ser Waymar Royce asked with just the hint of a smile.
+  // Function to fetch map URL from server
+  const fetchMapUrl = async (address: string) => {
+    try {
+      setMapLoading(true);
+      setMapError(null);
 
-Gorod did not rise to the bait. He was an old man, past fifty, and he had seen the lordlings come and go. "Dead is dead," he said. "We have no business with the dead."
+      const response = await fetch(`${SUPABASE_CONFIG.url}${SUPABASE_CONFIG.endpoints.getMapUrl}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+          'apikey': SUPABASE_CONFIG.anonKey
+        },
+        body: JSON.stringify({ address })
+      });
 
-"Are they dead?" Royce asked softly. "What proof have we?"
+      if (!response.ok) {
+        throw new Error(`Failed to fetch map URL: ${response.status}`);
+      }
 
-"Will saw them," Gorod said. "If he says they are dead, that's proof enough for me."
+      const data = await response.json();
+      setMapUrl(data.mapUrl);
+    } catch (error) {
+      console.error('Error fetching map URL:', error);
+      setMapError(error instanceof Error ? error.message : 'Failed to load map');
+    } finally {
+      setMapLoading(false);
+    }
+  };
 
-Will had known they would drag him into the quarrel sooner or later. He wished it had been later rather than sooner. "My mother told me that dead men sing no songs," he put in.
+  const tourContent = tourData?.narration || `Welcome to your walking tour! We're sorry, but it seems the tour content didn't load properly. This might be because you're viewing this page directly without going through the tour generation process.
 
-"My wet nurse said the same thing, Will," Royce replied. "Never believe anything you hear at a woman's tit. There are things to be learned even from the dead." His voice echoed, too loud in the twilight forest.
+To experience a full tour:
+1. Go back to the home page
+2. Click "Craft New Tour"
+3. Allow location access or enter your location
+4. Select your interests
+5. Wait for the tour to generate
 
-"We have a long ride before us," Gorod pointed out. "Eight days, maybe nine. And night is falling."
-
-Ser Waymar Royce glanced at the sky with disinterest. "It does that every day about this time. Are you unmanned by the dark, Gorod?"`;
+Your personalized tour will include fascinating historical stories, architectural insights, and local legends tailored to your interests and location.`;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -52,12 +90,19 @@ Ser Waymar Royce glanced at the sky with disinterest. "It does that every day ab
     return () => clearInterval(timer);
   }, [navigate]);
 
+  // Fetch map URL when component mounts or location changes
+  useEffect(() => {
+    if (currentLocation) {
+      fetchMapUrl(currentLocation);
+    }
+  }, [currentLocation]);
+
   return (
     <div className="app">
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h3 className="header-title">
-          45 Smith Street
+          {currentLocation}
         </h3>
         <ThemeToggle />
       </div>
@@ -83,26 +128,71 @@ Ser Waymar Royce glanced at the sky with disinterest. "It does that every day ab
             backgroundColor: 'var(--secondary-color)',
             borderRadius: '12px',
             marginBottom: '16px',
-            backgroundImage: 'url("https://maps.googleapis.com/maps/api/staticmap?center=45+Smith+Street,+New+York,+NY&zoom=16&size=400x120&maptype=roadmap&markers=color:red%7C45+Smith+Street,+New+York,+NY&key=YOUR_API_KEY")',
+            backgroundImage: mapUrl ? `url("${mapUrl}")` : 'none',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             border: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative'
           }}>
-            <div style={{ 
-              textAlign: 'center', 
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--background)',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              fontSize: '14px'
-            }}>
-              <MapPin size={20} style={{ marginBottom: '4px' }} />
-              <div>45 Smith Street</div>
-              <div style={{ fontSize: '12px' }}>New York, NY</div>
-            </div>
+            {mapLoading ? (
+              <div style={{ 
+                textAlign: 'center', 
+                color: 'var(--text-secondary)',
+                fontSize: '14px'
+              }}>
+                <MapPin size={20} style={{ marginBottom: '4px' }} />
+                <div>Loading map...</div>
+              </div>
+            ) : mapError ? (
+              <div style={{ 
+                textAlign: 'center', 
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--background)',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}>
+                <MapPin size={20} style={{ marginBottom: '4px' }} />
+                <div>{currentLocation}</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                  Map unavailable
+                </div>
+              </div>
+            ) : mapUrl ? (
+              // Overlay with location info when map is loaded
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#333',
+                backdropFilter: 'blur(4px)'
+              }}>
+                <MapPin size={14} style={{ marginRight: '4px', verticalAlign: 'text-bottom' }} />
+                {currentLocation.length > 30 ? `${currentLocation.substring(0, 30)}...` : currentLocation}
+              </div>
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--background)',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '14px'
+              }}>
+                <MapPin size={20} style={{ marginBottom: '4px' }} />
+                <div>{currentLocation}</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                  No map available
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: '8px' }}>

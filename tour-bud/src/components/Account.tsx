@@ -13,14 +13,14 @@ const Account: React.FC = () => {
 
   const handleSave = () => {
     // Placeholder for saving user data
-    console.log('Saving user data:', { fullName });
+
     setIsEditing(false);
     // In a real app, you'd make an API call here
   };
 
   const handleProfilePictureChange = () => {
     // Placeholder for profile picture change
-    console.log('Change profile picture clicked');
+
     // In a real app, you'd open a file picker or camera
   };
 

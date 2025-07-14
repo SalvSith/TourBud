@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Book, 
   Briefcase, 
@@ -23,10 +23,15 @@ import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
 import { Interest } from '../types';
+import tourService from '../services/tourService';
 
 const InterestSelect: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['history']);
+  
+  // Get coordinates from navigation state
+  const { coordinates } = location.state || {};
 
   const interests: Interest[] = [
     { id: 'history', name: 'History', icon: '🏛️' },
@@ -52,16 +57,45 @@ const InterestSelect: React.FC = () => {
   ];
 
   const toggleInterest = (id: string) => {
-    setSelectedInterests(prev => 
-      prev.includes(id) 
-        ? prev.filter(i => i !== id)
-        : [...prev, id]
-    );
+    setSelectedInterests(prev => {
+      if (prev.includes(id)) {
+        // Remove the interest if it's already selected
+        return prev.filter(i => i !== id);
+      } else if (prev.length < 3) {
+        // Add the interest only if we haven't reached the limit of 3
+        return [...prev, id];
+      }
+      // If we already have 3 interests selected, don't add more
+      return prev;
+    });
   };
 
-  const handleGenerate = () => {
-    if (selectedInterests.length > 0) {
-      navigate('/generating', { state: { interests: selectedInterests } });
+  const handleGenerate = async () => {
+    if (selectedInterests.length > 0 && coordinates) {
+      try {
+        // First, geocode the location to get street info
+        const geocodeData = await tourService.geocodeLocation(
+          coordinates.latitude,
+          coordinates.longitude
+        );
+        
+        navigate('/places', { 
+          state: { 
+            interests: selectedInterests,
+            coordinates: coordinates,
+            geocodeData: geocodeData
+          } 
+        });
+      } catch (error) {
+        console.error('Failed to geocode location:', error);
+        // Fallback to direct generation
+        navigate('/generating', { 
+          state: { 
+            interests: selectedInterests,
+            coordinates: coordinates 
+          } 
+        });
+      }
     }
   };
 
@@ -85,19 +119,29 @@ const InterestSelect: React.FC = () => {
             gap: '12px',
             marginBottom: '80px'
           }}>
-            {interests.map((interest, index) => (
-              <motion.button
-                key={interest.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2, delay: index * 0.02 }}
-                className={`chip-motion ${selectedInterests.includes(interest.id) ? 'selected' : ''}`}
-                onClick={() => toggleInterest(interest.id)}
-              >
-                <span style={{ fontSize: '16px' }}>{interest.icon}</span>
-                <span>{interest.name}</span>
-              </motion.button>
-            ))}
+            {interests.map((interest, index) => {
+              const isSelected = selectedInterests.includes(interest.id);
+              const isDisabled = !isSelected && selectedInterests.length >= 3;
+              
+              return (
+                <motion.button
+                  key={interest.id}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  className={`chip-motion ${isSelected ? 'selected' : ''}`}
+                  onClick={() => toggleInterest(interest.id)}
+                  disabled={isDisabled}
+                  style={{
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <span style={{ fontSize: '16px' }}>{interest.icon}</span>
+                  <span>{interest.name}</span>
+                </motion.button>
+              );
+            })}
           </div>
         </motion.div>
       </div>

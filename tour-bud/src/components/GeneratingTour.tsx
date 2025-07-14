@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, FileText, Mic, CheckCircle, Check } from 'lucide-react';
+import { Search, FileText, Mic, CheckCircle, Check, AlertCircle } from 'lucide-react';
+import tourService from '../services/tourService';
 
 interface LoadingStep {
   id: number;
@@ -17,95 +18,161 @@ const GeneratingTour: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Get location, interests, and selected places from navigation state
+  const { coordinates, interests, geocodeData, selectedPlaces } = location.state || {};
 
   const steps: LoadingStep[] = [
     {
       id: 1,
-      title: "Conducting Deep Research",
-      description: "Gathering fascinating stories, historical facts, and hidden gems about your destination",
+      title: "Preparing Location Data",
+      description: "Processing your confirmed location and street information",
       icon: <Search size={24} />,
-      duration: 900
+      duration: 2000
     },
     {
       id: 2,
-      title: "Preparing Tour Content",
-      description: "Crafting engaging narratives and curating the most interesting points of discovery",
+      title: "Organizing Selected Places",
+      description: "Preparing your chosen places for detailed research",
       icon: <FileText size={24} />,
-      duration: 900
+      duration: 3000
     },
     {
       id: 3,
-      title: "Setting Up Voice Guide",
-      description: "Preparing your personal AI narrator with perfect timing and pronunciation",
-      icon: <Mic size={24} />,
-      duration: 800
+      title: "Researching Street History",
+      description: "Web searching for historical context about your street and selected places",
+      icon: <Search size={24} />,
+      duration: 15000
     },
     {
       id: 4,
-      title: "Adding Final Touches",
-      description: "Optimizing your route and ensuring everything is perfectly tailored for you",
+      title: "Exploring Your Places",
+      description: "Deep research on your selected places: reviews, stories, and significance",
+      icon: <Search size={24} />,
+      duration: 15000
+    },
+    {
+      id: 5,
+      title: "Creating Your Personalized Tour",
+      description: "Crafting a walking tour focused on your chosen places and interests",
+      icon: <Mic size={24} />,
+      duration: 20000
+    },
+    {
+      id: 6,
+      title: "Finalizing Experience",
+      description: "Optimizing your route and preparing the personalized tour",
       icon: <CheckCircle size={24} />,
-      duration: 700
+      duration: 2000
     }
   ];
 
   useEffect(() => {
-    let stepTimer: NodeJS.Timeout;
-    let progressTimer: NodeJS.Timeout;
+    if (!coordinates || !interests || !geocodeData || !selectedPlaces) {
+      setError('Missing location, interests, or selected places data');
+      setTimeout(() => navigate('/'), 2000);
+      return;
+    }
 
-    const startStep = (stepIndex: number) => {
-      if (stepIndex >= steps.length) {
-        // All steps completed, navigate to tour
-        navigate('/tour', { 
-          state: { 
-            tourId: '1',
-            location: '45 Smith Street',
-            part: 1
-          } 
-        });
-        return;
-      }
+    generateTour();
+  }, [coordinates, interests, geocodeData, selectedPlaces]);
 
-      setCurrentStep(stepIndex);
-      setProgress(0);
+  const generateTour = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
 
-      const step = steps[stepIndex];
-      const progressIncrement = 100 / (step.duration / 50); // Update every 50ms
-
-      progressTimer = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = prev + progressIncrement;
-          return newProgress >= 100 ? 100 : newProgress;
-        });
-      }, 50);
-
-      stepTimer = setTimeout(() => {
-        clearInterval(progressTimer);
-        setProgress(100);
+    try {
+      // Step 1: Already have geocode data, just show progress
+      setCurrentStep(0);
+      let progressTimer = startStepProgress(0);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      completeStep(0, progressTimer);
+      
+      // Step 2: Already have selected places, just show progress
+      setCurrentStep(1);
+      progressTimer = startStepProgress(1);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      completeStep(1, progressTimer);
+      
+      // Step 3-5: Generate tour with web research (this happens all at once but we show progress)
+      setCurrentStep(2);
+      progressTimer = startStepProgress(2);
+      
+      // Let historical research step complete
+      setTimeout(() => {
+        completeStep(2, progressTimer);
         
-        // Mark current step as completed
-        setCompletedSteps(prev => [...prev, stepIndex]);
+        // Step 4: Current culture research
+        setCurrentStep(3);
+        progressTimer = startStepProgress(3);
         
-        // Small delay before moving to next step
         setTimeout(() => {
-          startStep(stepIndex + 1);
-        }, 200);
-      }, step.duration);
-    };
+          completeStep(3, progressTimer);
+          
+          // Step 5: Tour creation (the actual API call happens here)
+          setCurrentStep(4);
+          progressTimer = startStepProgress(4);
+        }, 15000); // Match the step duration
+      }, 15000); // Match the step duration
+      
+      const tourData = await tourService.generateTour(
+        { ...geocodeData, latitude: coordinates.latitude, longitude: coordinates.longitude },
+        selectedPlaces, // Use the selected places instead of all places
+        interests
+      );
+      
+      completeStep(4, progressTimer);
+      
+      // Step 6: Finalize
+      setCurrentStep(5);
+      progressTimer = startStepProgress(5);
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      completeStep(5, progressTimer);
+      
+      // Navigate to tour page with the generated data
+      setTimeout(() => {
+        navigate('/tour', {
+          state: {
+            tourId: tourData.tourId,
+            tourData: tourData,
+            location: geocodeData.formattedAddress
+          }
+        });
+      }, 500);
+      
+    } catch (err) {
+      console.error('Tour generation error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate tour');
+    }
+  };
 
-    // Start immediately without any delays
-    const initializeAndStart = () => {
-      startStep(0); // Start from step 0 immediately
-    };
+  const startStepProgress = (stepIndex: number): NodeJS.Timeout => {
+    const step = steps[stepIndex];
+    const progressIncrement = 100 / (step.duration / 50);
+    
+    const timer = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + progressIncrement;
+        return newProgress >= 100 ? 100 : newProgress;
+      });
+    }, 50);
+    
+    return timer;
+  };
 
-    // Start immediately without delay
-    initializeAndStart();
-
-    return () => {
-      clearTimeout(stepTimer);
-      clearInterval(progressTimer);
-    };
-  }, [navigate]);
+  const completeStep = (stepIndex: number, progressTimer: NodeJS.Timeout) => {
+    clearInterval(progressTimer);
+    setProgress(100);
+    setCompletedSteps(prev => [...prev, stepIndex]);
+    
+    setTimeout(() => {
+      setProgress(0);
+    }, 200);
+  };
 
   const getStepState = (stepIndex: number) => {
     if (completedSteps.includes(stepIndex)) return 'completed';
@@ -160,6 +227,27 @@ const GeneratingTour: React.FC = () => {
         };
     }
   };
+
+  if (error) {
+    return (
+      <div className="app">
+        <div className="container flex-center" style={{ height: '100vh', padding: '40px 20px' }}>
+          <div className="text-center" style={{ maxWidth: '400px' }}>
+            <AlertCircle size={48} color="var(--error-color)" style={{ marginBottom: '16px' }} />
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Generation Failed</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => navigate('/')}
+              style={{ marginTop: '24px' }}
+            >
+              Return Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">

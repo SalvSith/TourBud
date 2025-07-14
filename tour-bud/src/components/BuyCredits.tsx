@@ -229,30 +229,40 @@ const BuyCredits: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ marginTop: '40px' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={handlePurchase}
-              disabled={!selectedPackage}
-              style={{
-                opacity: !selectedPackage ? 0.5 : 1,
-                cursor: !selectedPackage ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <CreditCard size={20} />
-              Continue to Payment
-            </button>
-          </div>
-
           <p style={{ 
             textAlign: 'center', 
             fontSize: '12px', 
             color: 'var(--text-secondary)',
-            marginTop: '20px'
+            marginTop: '20px',
+            marginBottom: '80px'
           }}>
             Secure payment powered by Stripe
           </p>
         </motion.div>
+      </div>
+
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '430px',
+        padding: '20px',
+        backgroundColor: 'var(--background)'
+      }}>
+        <button 
+          className="btn btn-primary"
+          onClick={handlePurchase}
+          disabled={!selectedPackage}
+          style={{
+            opacity: !selectedPackage ? 0.5 : 1,
+            cursor: !selectedPackage ? 'not-allowed' : 'pointer'
+          }}
+        >
+          <CreditCard size={20} />
+          Continue to Payment
+        </button>
       </div>
     </div>
   );
