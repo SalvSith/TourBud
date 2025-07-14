@@ -85,15 +85,47 @@ const LocationConfirm: React.FC = () => {
 
   // Function to get user's current location
   const getCurrentLocation = () => {
+    // Check if geolocation is supported
     if (!navigator.geolocation) {
       console.warn('Geolocation is not supported by this browser');
       setError('Geolocation is not supported by this browser');
       return;
     }
 
+    // Check if we're on HTTPS (required for Safari on iOS)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      setError('Location access requires HTTPS. Please visit the secure version of this site.');
+      return;
+    }
+
     setIsRequestingLocation(true);
     setError('');
 
+    // Check permissions first (if supported)
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        console.log('Geolocation permission status:', result.state);
+        if (result.state === 'denied') {
+          setIsRequestingLocation(false);
+          setError('Location access is blocked. Please enable location in your browser settings and refresh the page.');
+          return;
+        }
+        requestLocation();
+      }).catch(() => {
+        // Fallback if permissions API is not supported
+        requestLocation();
+      });
+    } else {
+      requestLocation();
+    }
+  };
+
+  const requestLocation = () => {
+    console.log('Requesting location...');
+    console.log('User agent:', navigator.userAgent);
+    console.log('Protocol:', window.location.protocol);
+    console.log('Hostname:', window.location.hostname);
+    
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -149,12 +181,20 @@ const LocationConfirm: React.FC = () => {
       },
       (error) => {
         console.warn('Unable to retrieve location:', error);
+        console.log('Error code:', error.code);
+        console.log('Error message:', error.message);
         setIsRequestingLocation(false);
         
-        // More specific error messages
+        // More specific error messages for Safari iOS
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setError('Location access denied. Please allow location access and try again.');
+            // Check if we're on iOS Safari and provide more specific guidance
+            const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+            if (isIOSSafari) {
+              setError('Location blocked. Go to Settings > Safari > Location > Allow or Settings > Privacy & Security > Location Services > Safari Websites > Allow.');
+            } else {
+              setError('Location access denied. Please allow location access and try again.');
+            }
             break;
           case error.POSITION_UNAVAILABLE:
             setError('Location information is unavailable. Please enter your location manually.');
@@ -169,7 +209,7 @@ const LocationConfirm: React.FC = () => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000, // Increased timeout for mobile
         maximumAge: 60000
       }
     );
@@ -421,14 +461,28 @@ const LocationConfirm: React.FC = () => {
                 </>
               )}
             </button>
-            <p style={{ 
-              fontSize: '12px', 
+            
+            {/* Debug info for troubleshooting */}
+            <div style={{ 
+              fontSize: '11px', 
               color: 'var(--text-secondary)',
               marginTop: '8px',
               marginBottom: '0'
             }}>
-              Or enter your location manually in the search box below
-            </p>
+              <div>Or enter your location manually in the search box below</div>
+              <div style={{ marginTop: '4px' }}>
+                {window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && (
+                  <span style={{ color: 'var(--error-color)' }}>⚠️ HTTPS required for location • </span>
+                )}
+                {/iPad|iPhone|iPod/.test(navigator.userAgent) && (
+                  <span>📱 iOS Safari detected • </span>
+                )}
+                {!navigator.geolocation && (
+                  <span style={{ color: 'var(--error-color)' }}>❌ Geolocation not supported • </span>
+                )}
+                <span>Protocol: {window.location.protocol}</span>
+              </div>
+            </div>
           </div>
 
           {/* Google Maps Preview */}
@@ -510,18 +564,39 @@ const LocationConfirm: React.FC = () => {
               overflow: 'hidden'
             }}
           >
-            {error && (
-              <div style={{
-                padding: '12px',
-                backgroundColor: 'var(--error-color)',
-                color: 'white',
-                borderRadius: 'var(--border-radius)',
-                fontSize: '14px',
-                marginBottom: '16px'
-              }}>
+                      {error && (
+            <div style={{
+              padding: '16px',
+              backgroundColor: 'var(--error-color)',
+              color: 'white',
+              borderRadius: 'var(--border-radius)',
+              fontSize: '14px',
+              marginBottom: '16px',
+              lineHeight: '1.5'
+            }}>
+              <div style={{ marginBottom: '8px' }}>
                 {error}
               </div>
-            )}
+              {error.includes('Location blocked') && (
+                <div style={{
+                  fontSize: '12px',
+                  opacity: '0.9',
+                  marginTop: '8px'
+                }}>
+                  <strong>Quick fix:</strong> Tap the "aA" icon in Safari's address bar → Website Settings → Location → Allow
+                </div>
+              )}
+              {error.includes('HTTPS') && (
+                <div style={{
+                  fontSize: '12px',
+                  opacity: '0.9',
+                  marginTop: '8px'
+                }}>
+                  <strong>Current URL:</strong> {window.location.href}
+                </div>
+              )}
+            </div>
+          )}
             
             <div style={{ position: 'relative' }}>
               <div style={{
