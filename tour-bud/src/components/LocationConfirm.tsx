@@ -588,7 +588,7 @@ const LocationConfirm: React.FC = () => {
             marginTop: '32px',
             marginBottom: '80px'
           }}>
-            Your location is only used to generate relevant tour content and is not stored or shared.
+            Locations are used to generate tours and are never stored or shared.
           </p>
         </motion.div>
       </div>
@@ -612,8 +612,7 @@ const LocationConfirm: React.FC = () => {
             cursor: !location.trim() ? 'not-allowed' : 'pointer'
           }}
         >
-          <MapPin size={20} />
-          Confirm & Continue
+          Continue
         </button>
       </div>
     </div>

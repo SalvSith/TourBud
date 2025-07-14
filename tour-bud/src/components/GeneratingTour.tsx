@@ -27,42 +27,28 @@ const GeneratingTour: React.FC = () => {
   const steps: LoadingStep[] = [
     {
       id: 1,
-      title: "Preparing Location Data",
-      description: "Processing your confirmed location and street information",
-      icon: <Search size={24} />,
-      duration: 2000
+      title: "Processing Location & Places",
+      description: "Organizing your location data and selected places for tour generation",
+      icon: <FileText size={24} />,
+      duration: 5000
     },
     {
       id: 2,
-      title: "Organizing Selected Places",
-      description: "Preparing your chosen places for detailed research",
-      icon: <FileText size={24} />,
-      duration: 3000
+      title: "Researching Your Places",
+      description: "Deep research on your selected places: history, reviews, stories, and significance",
+      icon: <Search size={24} />,
+      duration: 30000
     },
     {
       id: 3,
-      title: "Researching Street History",
-      description: "Web searching for historical context about your street and selected places",
-      icon: <Search size={24} />,
-      duration: 15000
-    },
-    {
-      id: 4,
-      title: "Exploring Your Places",
-      description: "Deep research on your selected places: reviews, stories, and significance",
-      icon: <Search size={24} />,
-      duration: 15000
-    },
-    {
-      id: 5,
       title: "Creating Your Personalized Tour",
       description: "Crafting a walking tour focused on your chosen places and interests",
       icon: <Mic size={24} />,
       duration: 20000
     },
     {
-      id: 6,
-      title: "Finalizing Experience",
+      id: 4,
+      title: "Finalizing Your Experience",
       description: "Optimizing your route and preparing the personalized tour",
       icon: <CheckCircle size={24} />,
       duration: 2000
@@ -84,38 +70,15 @@ const GeneratingTour: React.FC = () => {
     setIsGenerating(true);
 
     try {
-      // Step 1: Already have geocode data, just show progress
+      // Step 1: Process location and places data
       setCurrentStep(0);
       let progressTimer = startStepProgress(0);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 5000));
       completeStep(0, progressTimer);
       
-      // Step 2: Already have selected places, just show progress
+      // Step 2: Research places (this is where the main work happens)
       setCurrentStep(1);
       progressTimer = startStepProgress(1);
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      completeStep(1, progressTimer);
-      
-      // Step 3-5: Generate tour with web research (this happens all at once but we show progress)
-      setCurrentStep(2);
-      progressTimer = startStepProgress(2);
-      
-      // Let historical research step complete
-      setTimeout(() => {
-        completeStep(2, progressTimer);
-        
-        // Step 4: Current culture research
-        setCurrentStep(3);
-        progressTimer = startStepProgress(3);
-        
-        setTimeout(() => {
-          completeStep(3, progressTimer);
-          
-          // Step 5: Tour creation (the actual API call happens here)
-          setCurrentStep(4);
-          progressTimer = startStepProgress(4);
-        }, 15000); // Match the step duration
-      }, 15000); // Match the step duration
       
       const tourData = await tourService.generateTour(
         { ...geocodeData, latitude: coordinates.latitude, longitude: coordinates.longitude },
@@ -123,15 +86,23 @@ const GeneratingTour: React.FC = () => {
         interests
       );
       
-      completeStep(4, progressTimer);
+      completeStep(1, progressTimer);
       
-      // Step 6: Finalize
-      setCurrentStep(5);
-      progressTimer = startStepProgress(5);
+      // Step 3: Create personalized tour
+      setCurrentStep(2);
+      progressTimer = startStepProgress(2);
+      
+      await new Promise(resolve => setTimeout(resolve, 20000));
+      
+      completeStep(2, progressTimer);
+      
+      // Step 4: Finalize
+      setCurrentStep(3);
+      progressTimer = startStepProgress(3);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      completeStep(5, progressTimer);
+      completeStep(3, progressTimer);
       
       // Navigate to tour page with the generated data
       setTimeout(() => {
@@ -376,7 +347,7 @@ const GeneratingTour: React.FC = () => {
             color: 'var(--text-secondary)',
             margin: 0
           }}>
-            Creating your perfect tour experience
+            You can safely close or leave this page.
           </p>
         </div>
       </div>

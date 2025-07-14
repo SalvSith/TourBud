@@ -165,7 +165,7 @@ const InterestSelect: React.FC = () => {
             cursor: selectedInterests.length === 0 ? 'not-allowed' : 'pointer'
           }}
         >
-          Generate Tour
+          Continue
         </button>
       </div>
     </div>

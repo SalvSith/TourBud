@@ -5,6 +5,7 @@ import { MapPin, CheckCircle, Circle, Search, ChevronDown, ChevronUp } from 'luc
 import BackButton from './BackButton';
 import ThemeToggle from './ThemeToggle';
 import tourService from '../services/tourService';
+import FindingPlacesLoader from './FindingPlacesLoader';
 
 interface Place {
   name: string;
@@ -330,16 +331,9 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
           <ThemeToggle />
         </div>
         
-        <div className="loading-container">
-          <motion.div
-            className="loading-spinner"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          >
-            <Search size={32} />
-          </motion.div>
-          <p>Discovering places near {geocodeData?.streetName || geocodeData?.formattedAddress || 'your location'}...</p>
-        </div>
+        <FindingPlacesLoader 
+          streetName={geocodeData?.streetName || geocodeData?.formattedAddress || 'your location'}
+        />
       </div>
     );
   }
@@ -488,21 +482,6 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
       </div>
 
       <style>{`
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
-          text-align: center;
-          color: var(--text-secondary);
-        }
-
-        .loading-spinner {
-          margin-bottom: 20px;
-          color: var(--primary-color);
-        }
-
         .error-container {
           padding: 40px 20px;
           text-align: center;
