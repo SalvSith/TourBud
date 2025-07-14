@@ -26,6 +26,9 @@ const LocationConfirm: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
+  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
+  const [showLocationButton, setShowLocationButton] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -51,8 +54,19 @@ const LocationConfirm: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Get user's current location automatically when component mounts
-    getCurrentLocation();
+    // Check if geolocation is available and try to get location automatically
+    // But only for desktop browsers, not mobile
+    const isDesktop = !(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    
+    if (isDesktop) {
+      // For desktop, try to get location automatically
+      getCurrentLocation(false);
+    } else {
+      // For mobile, show the location request button
+      setShowLocationButton(true);
+      // Show default map but leave input empty for manual entry
+      fetchMapUrl('New York, NY');
+    }
   }, []);
 
   // Handle clicks outside the input/suggestions to close dropdown and reset to current location
@@ -83,12 +97,20 @@ const LocationConfirm: React.FC = () => {
   }, [currentLocation, location]);
 
   // Function to get user's current location
-  const getCurrentLocation = () => {
+  const getCurrentLocation = (isManualRequest: boolean = true) => {
     if (!navigator.geolocation) {
       console.warn('Geolocation is not supported by this browser');
+      setError('Geolocation is not supported by this browser');
+      setShowLocationButton(false);
       // Show default map but leave input empty for manual entry
       fetchMapUrl('New York, NY');
       return;
+    }
+
+    if (isManualRequest) {
+      setIsRequestingLocation(true);
+      setHasRequestedLocation(true);
+      setError('');
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -131,23 +153,48 @@ const LocationConfirm: React.FC = () => {
             fetchMapUrl(`${latitude},${longitude}`);
           }
           
+          setShowLocationButton(false);
+          setError('');
         } catch (err) {
           console.error('Failed to process location:', err);
+          setError('Failed to process location. Please try again or enter manually.');
           // Show default map but leave input empty for manual entry
           fetchMapUrl('New York, NY');
         }
       },
       (error) => {
         console.warn('Unable to retrieve location:', error);
+        
+        // Provide specific error messages for different error types
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setError('Location access denied. Please enable location permissions or enter your address manually.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setError('Location information is unavailable. Please enter your address manually.');
+            break;
+          case error.TIMEOUT:
+            setError('Location request timed out. Please try again or enter your address manually.');
+            break;
+          default:
+            setError('Unable to retrieve location. Please enter your address manually.');
+            break;
+        }
+        
+        setShowLocationButton(true);
         // Show default map but leave input empty for manual entry
         fetchMapUrl('New York, NY');
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000, // Increased timeout for mobile
         maximumAge: 60000
       }
     );
+    
+    if (isManualRequest) {
+      setIsRequestingLocation(false);
+    }
   };
 
   // Function to fetch map URL from server
@@ -337,6 +384,11 @@ const LocationConfirm: React.FC = () => {
     }
   };
 
+  // Handle manual location request button click
+  const handleRequestLocation = () => {
+    getCurrentLocation(true);
+  };
+
   return (
     <div className="app">
       <div className="header">
@@ -456,7 +508,7 @@ const LocationConfirm: React.FC = () => {
               }}>
                 <MapPin 
                   size={18} 
-                  onClick={getCurrentLocation}
+                  onClick={() => getCurrentLocation(true)}
                   style={{
                     position: 'absolute',
                     left: '16px',
@@ -580,6 +632,39 @@ const LocationConfirm: React.FC = () => {
               )}
             </div>
           </div>
+
+          {showLocationButton && (
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <button 
+                className="btn btn-secondary"
+                onClick={handleRequestLocation}
+                disabled={isRequestingLocation}
+                style={{
+                  opacity: isRequestingLocation ? 0.5 : 1,
+                  cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  margin: '0 auto'
+                }}
+              >
+                {isRequestingLocation ? (
+                  <div style={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid var(--border-color)',
+                    borderTop: '2px solid var(--primary-color)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                ) : (
+                  <MapPin size={18} />
+                )}
+                <span>{isRequestingLocation ? 'Requesting Location...' : 'Use My Current Location'}</span>
+              </button>
+            </div>
+          )}
 
           <p style={{ 
             textAlign: 'center', 
