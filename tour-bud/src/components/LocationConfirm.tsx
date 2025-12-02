@@ -172,13 +172,17 @@ const LocationConfirm: React.FC = () => {
         console.log('Error message:', error.message);
         setIsRequestingLocation(false);
         
-        // More specific error messages for Safari iOS
+        // More specific error messages for Safari
         switch (error.code) {
           case error.PERMISSION_DENIED:
             // Check if we're on iOS Safari and provide more specific guidance
             const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            
             if (isIOSSafari) {
-              setError('Location blocked. Go to Settings > Safari > Location > Allow or Settings > Privacy & Security > Location Services > Safari Websites > Allow.');
+              setError('Location blocked. If Safari isn\'t prompting:\n\n1. Settings → General → Transfer or Reset iPhone → Reset → Reset Location & Privacy\n2. Then: Settings → Privacy & Security → Location Services → Safari Websites → While Using\n3. Settings → Safari → Location → Ask');
+            } else if (isSafari) {
+              setError('Location blocked. If Safari isn\'t prompting:\n\n1. System Settings → Privacy & Security → Location Services → Enable Safari\n2. Safari → Settings → Websites → Location → set to "Ask"\n3. Safari → Settings → Privacy → Disable "Deny without prompting" if present');
             } else {
               setError('Location access denied. Please allow location access and try again.');
             }
