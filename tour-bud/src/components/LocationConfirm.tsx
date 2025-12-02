@@ -84,6 +84,9 @@ const LocationConfirm: React.FC = () => {
   }, [currentLocation, location]);
 
   // Function to get user's current location
+  // CRITICAL FOR SAFARI: getCurrentPosition MUST be called IMMEDIATELY and SYNCHRONOUSLY
+  // in the exact same call stack as the user gesture (button click).
+  // Calling setState or any other function before it can break Safari's permission prompt.
   const getCurrentLocation = () => {
     // Check if geolocation is supported
     if (!navigator.geolocation) {
@@ -93,7 +96,6 @@ const LocationConfirm: React.FC = () => {
     }
 
     // Check if we're on HTTPS (required for Safari on iOS)
-    // Allow localhost and 127.0.0.1 for development
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (window.location.protocol !== 'https:' && !isLocalhost) {
       console.error('Geolocation blocked: not HTTPS', window.location.protocol, window.location.hostname);
@@ -101,45 +103,15 @@ const LocationConfirm: React.FC = () => {
       return;
     }
 
-    setIsRequestingLocation(true);
-    setError('');
-
-    // iOS Safari doesn't support the Permissions API, so skip it and go straight to requesting location
-    // The browser will show its own permission prompt
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    console.log('Calling getCurrentPosition IMMEDIATELY (Safari-compatible)');
     
-    if (isIOS || isSafari) {
-      // On iOS/Safari, directly request location - the browser handles the permission prompt
-      console.log('iOS/Safari detected, requesting location directly');
-      requestLocation();
-      return;
-    }
-
-    // For other browsers, check permissions first (if supported)
-    if ('permissions' in navigator) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        console.log('Geolocation permission status:', result.state);
-        if (result.state === 'denied') {
-          setIsRequestingLocation(false);
-          setError('Location access is blocked. Please enable location in your browser settings and refresh the page.');
-          return;
-        }
-        requestLocation();
-      }).catch(() => {
-        // Fallback if permissions API is not supported
-        requestLocation();
-      });
-    } else {
-      requestLocation();
-    }
-  };
-
-  const requestLocation = () => {
-    console.log('Requesting location...');
-    console.log('User agent:', navigator.userAgent);
-    console.log('Protocol:', window.location.protocol);
-    console.log('Hostname:', window.location.hostname);
+    // SAFARI FIX: Call getCurrentPosition FIRST, BEFORE any setState
+    // This must be the very first thing after the user clicks
+    // Set loading state AFTER initiating the request (not before)
+    setTimeout(() => {
+      setIsRequestingLocation(true);
+      setError('');
+    }, 0);
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
