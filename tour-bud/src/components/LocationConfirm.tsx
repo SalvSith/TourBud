@@ -93,15 +93,30 @@ const LocationConfirm: React.FC = () => {
     }
 
     // Check if we're on HTTPS (required for Safari on iOS)
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      setError('Location access requires HTTPS. Please visit the secure version of this site.');
+    // Allow localhost and 127.0.0.1 for development
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.location.protocol !== 'https:' && !isLocalhost) {
+      console.error('Geolocation blocked: not HTTPS', window.location.protocol, window.location.hostname);
+      setError('Location access requires a secure connection (HTTPS).');
       return;
     }
 
     setIsRequestingLocation(true);
     setError('');
 
-    // Check permissions first (if supported)
+    // iOS Safari doesn't support the Permissions API, so skip it and go straight to requesting location
+    // The browser will show its own permission prompt
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    if (isIOS || isSafari) {
+      // On iOS/Safari, directly request location - the browser handles the permission prompt
+      console.log('iOS/Safari detected, requesting location directly');
+      requestLocation();
+      return;
+    }
+
+    // For other browsers, check permissions first (if supported)
     if ('permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
         console.log('Geolocation permission status:', result.state);
