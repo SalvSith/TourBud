@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geolocation Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px 20px;
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    button {
+      padding: 16px 32px;
+      font-size: 18px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:active {
+      background: #4f46e5;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      text-align: left;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗺️ Geolocation Test</h1>
+  <p>Click the button to test if Safari prompts for location permission.</p>
+  
+  <button onclick="testGeolocation()">Test Location</button>
+  
+  <div id="result">Waiting for test...</div>
+
+  <script>
+    function log(msg) {
+      const result = document.getElementById('result');
+      result.textContent += '\n' + new Date().toISOString().substr(11, 8) + ' - ' + msg;
+      console.log(msg);
+    }
+
+    function testGeolocation() {
+      log('Button clicked!');
+      log('Protocol: ' + window.location.protocol);
+      log('Host: ' + window.location.hostname);
+      log('User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
+      
+      if (!navigator.geolocation) {
+        log('ERROR: Geolocation not supported');
+        return;
+      }
+      
+      log('Geolocation supported, calling getCurrentPosition...');
+      
+      // Call getCurrentPosition IMMEDIATELY - no other code before this
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          log('SUCCESS!');
+          log('Latitude: ' + position.coords.latitude);
+          log('Longitude: ' + position.coords.longitude);
+        },
+        function(error) {
+          log('ERROR Code: ' + error.code);
+          log('ERROR Message: ' + error.message);
+          
+          if (error.code === 1) {
+            log('');
+            log('PERMISSION DENIED - Safari may have cached a previous denial.');
+            log('');
+            log('To fix on iOS:');
+            log('1. Settings > Safari > Advanced > Website Data');
+            log('2. Find projecttour.vercel.app and delete it');
+            log('3. Also check Settings > Privacy > Location Services > Safari Websites');
+            log('');
+            log('To fix on Mac:');
+            log('1. Safari > Settings > Websites > Location');
+            log('2. Find projecttour.vercel.app and change to "Ask"');
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+      
+      log('getCurrentPosition called - waiting for response...');
+    }
+  </script>
+</body>
+</html>
+
