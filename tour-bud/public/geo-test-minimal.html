@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Geolocation Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    button {
+      padding: 20px 40px;
+      font-size: 18px;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 20px 0;
+    }
+    #output {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Absolute Minimal Geolocation Test</h1>
+  <p>This is the simplest possible geolocation request with NO options.</p>
+  
+  <button onclick="test1()">Test 1: NO OPTIONS</button>
+  <button onclick="test2()">Test 2: With Options</button>
+  <button onclick="test3()">Test 3: maximumAge 0</button>
+  
+  <div id="output">Click a button to test...</div>
+
+  <script>
+    function log(msg) {
+      document.getElementById('output').textContent += '\n' + msg;
+      console.log(msg);
+    }
+
+    function test1() {
+      document.getElementById('output').textContent = 'TEST 1: Calling with NO options at all\n';
+      log('Calling getCurrentPosition()...');
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          log('✅ SUCCESS!');
+          log('Lat: ' + pos.coords.latitude);
+          log('Lng: ' + pos.coords.longitude);
+        },
+        (err) => {
+          log('❌ ERROR!');
+          log('Code: ' + err.code);
+          log('Message: ' + err.message);
+        }
+      );
+    }
+
+    function test2() {
+      document.getElementById('output').textContent = 'TEST 2: Calling WITH options\n';
+      log('Calling getCurrentPosition() with options...');
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          log('✅ SUCCESS!');
+          log('Lat: ' + pos.coords.latitude);
+          log('Lng: ' + pos.coords.longitude);
+        },
+        (err) => {
+          log('❌ ERROR!');
+          log('Code: ' + err.code);
+          log('Message: ' + err.message);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000
+        }
+      );
+    }
+
+    function test3() {
+      document.getElementById('output').textContent = 'TEST 3: Calling with maximumAge: 0\n';
+      log('Calling getCurrentPosition() with maximumAge: 0...');
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          log('✅ SUCCESS!');
+          log('Lat: ' + pos.coords.latitude);
+          log('Lng: ' + pos.coords.longitude);
+        },
+        (err) => {
+          log('❌ ERROR!');
+          log('Code: ' + err.code);
+          log('Message: ' + err.message);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 30000,
+          maximumAge: 0
+        }
+      );
+    }
+  </script>
+</body>
+</html>
+
