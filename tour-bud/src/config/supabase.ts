@@ -19,7 +19,9 @@ export const SUPABASE_CONFIG = {
     startDeepResearch: '/functions/v1/start-deep-research',
     checkResearchStatus: '/functions/v1/check-research-status',
     // Perplexity research (primary research method)
-    perplexityResearch: '/functions/v1/perplexity-research'
+    perplexityResearch: '/functions/v1/perplexity-research',
+    // IP-based geolocation fallback
+    getIpLocation: '/functions/v1/get-ip-location'
   }
 };
 
