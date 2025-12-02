@@ -4,8 +4,8 @@
 export const SUPABASE_CONFIG = {
   // Get these from your Supabase project settings
   // Dashboard -> Settings -> API
-  url: 'https://eblwdcvtvcstfjemudmr.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVibHdkY3Z0dmNzdGZqZW11ZG1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MTM5ODksImV4cCI6MjA2Nzk4OTk4OX0.Ode3suEbK_fUsGGmiUiP2QA6UtvZ2XCAQtW9jqnkwZs', // Replace with your actual anon key from the dashboard
+  url: 'https://zszmnvmohiuzlokkexzk.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpzem1udm1vaGl1emxva2tleHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDc2MDUsImV4cCI6MjA4MDE4MzYwNX0.QT40tFOJRuny2IXNdFVnp1X-xCVjcjfyxWpvd8rf5bI',
   
   // API endpoints for Edge Functions
   endpoints: {
@@ -14,7 +14,12 @@ export const SUPABASE_CONFIG = {
     generateTour: '/functions/v1/generate-tour',
     getTour: '/functions/v1/get-tour',
     getMapUrl: '/functions/v1/get-map-url',
-    placesAutocomplete: '/functions/v1/places-autocomplete'
+    placesAutocomplete: '/functions/v1/places-autocomplete',
+    // Deep research endpoints
+    startDeepResearch: '/functions/v1/start-deep-research',
+    checkResearchStatus: '/functions/v1/check-research-status',
+    // Perplexity research (primary research method)
+    perplexityResearch: '/functions/v1/perplexity-research'
   }
 };
 

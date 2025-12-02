@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, CheckCircle, Circle, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import BackButton from './BackButton';
 import ThemeToggle from './ThemeToggle';
 import tourService from '../services/tourService';
@@ -77,15 +77,39 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
     });
   };
 
+  // Categories that are interesting to mention (exclude boring services)
+  const interestingCategories = [
+    'Food & Drink',
+    'Shopping', 
+    'Education',
+    'Health & Wellness',
+    'Sports & Fitness',
+    'Entertainment & Recreation',
+    'Places of Worship',
+    'Government',
+    'Lodging'
+  ];
+
   const handleContinue = () => {
     const selectedPlaceObjects = places.filter(p => selectedPlaces.includes(p.placeId));
+    
+    // Also get nearby places in interesting categories (not selected, but nearby)
+    // These are places immediately around them that might be worth mentioning
+    const nearbyInterestingPlaces = places
+      .filter(p => !selectedPlaces.includes(p.placeId)) // Not already selected
+      .filter(p => {
+        const { mainCategory } = categorizePlace(p.type, p.name);
+        return interestingCategories.includes(mainCategory);
+      })
+      .slice(0, 15); // Limit to 15 nearby places
     
     navigate('/generating', {
       state: {
         coordinates,
         interests,
         geocodeData,
-        selectedPlaces: selectedPlaceObjects
+        selectedPlaces: selectedPlaceObjects,
+        nearbyPlaces: nearbyInterestingPlaces // Pass nearby interesting places too
       }
     });
   };
@@ -303,7 +327,7 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
       .reduce((acc, [mainCategory, subCategories]) => {
         // Sort subcategories by number of places (descending)
         acc[mainCategory] = Object.entries(subCategories)
-          .sort(([, a], [, b]) => b.length - a.length)
+          .sort(([, a], [, second]) => second.length - a.length)
           .reduce((subAcc, [subCategory, places]) => {
             subAcc[subCategory] = places;
             return subAcc;

@@ -1,10 +1,165 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, ChevronRight, MapPin, Clock } from 'lucide-react';
+import { Play, Pause, MapPin, Clock, ExternalLink, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
+
+// Simple markdown renderer for tour content
+const renderMarkdown = (text: string): React.ReactNode => {
+  if (!text) return null;
+  
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentParagraph: string[] = [];
+  
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      const paragraphText = currentParagraph.join(' ');
+      elements.push(
+        <p key={elements.length} style={{ marginBottom: '16px', lineHeight: '1.8' }}>
+          {renderInlineMarkdown(paragraphText)}
+        </p>
+      );
+      currentParagraph = [];
+    }
+  };
+  
+  const renderInlineMarkdown = (line: string): React.ReactNode => {
+    // Handle bold **text** and __text__
+    const parts: React.ReactNode[] = [];
+    let remaining = line;
+    let keyIndex = 0;
+    
+    while (remaining.length > 0) {
+      // Check for bold
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*|__(.+?)__/);
+      if (boldMatch && boldMatch.index !== undefined) {
+        // Add text before the match
+        if (boldMatch.index > 0) {
+          parts.push(remaining.substring(0, boldMatch.index));
+        }
+        // Add bold text
+        parts.push(
+          <strong key={keyIndex++}>{boldMatch[1] || boldMatch[2]}</strong>
+        );
+        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+      } else {
+        // No more matches, add remaining text
+        parts.push(remaining);
+        break;
+      }
+    }
+    
+    return parts.length === 1 ? parts[0] : <>{parts}</>;
+  };
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    
+    // Empty line - flush paragraph
+    if (trimmedLine === '') {
+      flushParagraph();
+      continue;
+    }
+    
+    // Headers
+    if (trimmedLine.startsWith('### ')) {
+      flushParagraph();
+      elements.push(
+        <h4 key={elements.length} style={{ 
+          fontSize: '16px', 
+          fontWeight: '600', 
+          marginTop: '24px', 
+          marginBottom: '12px',
+          color: 'var(--text-primary)'
+        }}>
+          {trimmedLine.replace(/^### /, '')}
+        </h4>
+      );
+      continue;
+    }
+    
+    if (trimmedLine.startsWith('## ')) {
+      flushParagraph();
+      elements.push(
+        <h3 key={elements.length} style={{ 
+          fontSize: '18px', 
+          fontWeight: '600', 
+          marginTop: '28px', 
+          marginBottom: '14px',
+          color: 'var(--primary-color)'
+        }}>
+          {trimmedLine.replace(/^## /, '')}
+        </h3>
+      );
+      continue;
+    }
+    
+    if (trimmedLine.startsWith('# ')) {
+      flushParagraph();
+      elements.push(
+        <h2 key={elements.length} style={{ 
+          fontSize: '20px', 
+          fontWeight: '700', 
+          marginTop: '32px', 
+          marginBottom: '16px',
+          color: 'var(--text-primary)'
+        }}>
+          {trimmedLine.replace(/^# /, '')}
+        </h2>
+      );
+      continue;
+    }
+    
+    // Bullet points
+    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+      flushParagraph();
+      elements.push(
+        <div key={elements.length} style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          marginBottom: '8px',
+          paddingLeft: '8px'
+        }}>
+          <span style={{ color: 'var(--primary-color)' }}>•</span>
+          <span style={{ lineHeight: '1.6' }}>{renderInlineMarkdown(trimmedLine.substring(2))}</span>
+        </div>
+      );
+      continue;
+    }
+    
+    // Numbered lists
+    const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)/);
+    if (numberedMatch) {
+      flushParagraph();
+      elements.push(
+        <div key={elements.length} style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          marginBottom: '8px',
+          paddingLeft: '8px'
+        }}>
+          <span style={{ color: 'var(--primary-color)', fontWeight: '600', minWidth: '20px' }}>
+            {numberedMatch[1]}.
+          </span>
+          <span style={{ lineHeight: '1.6' }}>{renderInlineMarkdown(numberedMatch[2])}</span>
+        </div>
+      );
+      continue;
+    }
+    
+    // Regular text - add to current paragraph
+    currentParagraph.push(trimmedLine);
+  }
+  
+  // Flush any remaining paragraph
+  flushParagraph();
+  
+  return elements;
+};
 
 const Tour: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +172,9 @@ const Tour: React.FC = () => {
 
   // Get tour data from navigation state
   const { tourData, location: tourLocation } = location.state || {};
+  
+  // Get citations/sources from tour data
+  const sources: string[] = tourData?.sources || [];
 
   // Use actual tour data or fallback to defaults
   const tourInfo = tourData ? {
@@ -250,18 +408,139 @@ Your personalized tour will include fascinating historical stories, architectura
             backgroundColor: 'var(--card-background)',
             borderRadius: 'var(--border-radius)',
             padding: '24px',
-            marginBottom: '80px'
+            marginBottom: '24px',
+            fontSize: '16px',
+            color: 'var(--text-primary)'
           }}>
-            <p style={{ 
-              fontSize: '16px', 
-              lineHeight: '1.8',
-              color: 'var(--text-primary)',
-              whiteSpace: 'pre-wrap'
-            }}>
-              {tourContent}
-            </p>
+            {renderMarkdown(tourContent)}
           </div>
         </motion.div>
+
+        {/* Sources/Citations Section */}
+        {sources.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            style={{ marginBottom: '80px' }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '16px',
+              color: 'var(--text-secondary)'
+            }}>
+              <BookOpen size={18} />
+              <h3 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600',
+                margin: 0,
+                color: 'var(--text-primary)'
+              }}>
+                Sources ({sources.length})
+              </h3>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              {sources.map((source, index) => {
+                // Extract domain from URL for display
+                let domain = '';
+                let displayUrl = source;
+                try {
+                  const url = new URL(source);
+                  domain = url.hostname.replace('www.', '');
+                  // Truncate long URLs
+                  displayUrl = source.length > 60 ? source.substring(0, 60) + '...' : source;
+                } catch {
+                  domain = 'Source';
+                }
+                
+                return (
+                  <a
+                    key={index}
+                    href={source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '14px 16px',
+                      backgroundColor: 'var(--card-background)',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-color)',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary-color)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--primary-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <span style={{ 
+                        color: 'white', 
+                        fontSize: '14px', 
+                        fontWeight: '600' 
+                      }}>
+                        {index + 1}
+                      </span>
+                    </div>
+                    
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                        marginBottom: '2px'
+                      }}>
+                        {domain}
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {displayUrl}
+                      </div>
+                    </div>
+                    
+                    <ExternalLink 
+                      size={16} 
+                      style={{ 
+                        color: 'var(--text-secondary)',
+                        flexShrink: 0
+                      }} 
+                    />
+                  </a>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
       </div>
 
 

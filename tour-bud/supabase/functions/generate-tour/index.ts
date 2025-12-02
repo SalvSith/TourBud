@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const SERPER_API_KEY = Deno.env.get('SERPER_API_KEY');
 
 interface GenerateTourRequest {
   locationData: {
@@ -29,113 +28,8 @@ interface TourResponse {
   narration: string;
   title: string;
   description: string;
-  estimatedDuration: number; // in minutes
+  estimatedDuration: number;
   distance: string;
-}
-
-// Helper function to search the web using Serper API
-async function searchWeb(query: string, location?: string): Promise<string> {
-  if (!SERPER_API_KEY) {
-    console.log('⚠️ No SERPER_API_KEY found, skipping web search');
-    return '';
-  }
-
-  try {
-    console.log('🔍 Searching web for:', query);
-    
-    const response = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': SERPER_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: query,
-        gl: location ? getCountryCode(location) : 'us',
-        num: 5,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('Web search failed:', response.status);
-      return '';
-    }
-
-    const data = await response.json();
-    
-    if (data.organic && data.organic.length > 0) {
-      const results = data.organic.slice(0, 5).map((result: any) => 
-        `**${result.title}**\n${result.snippet}\nSource: ${result.link}\n`
-      ).join('\n');
-      
-      console.log('✅ Web search successful, found', data.organic.length, 'results');
-      return `\n\n**RECENT WEB SEARCH RESULTS:**\n${results}`;
-    }
-    
-    return '';
-  } catch (error) {
-    console.error('Web search error:', error);
-    return '';
-  }
-}
-
-// Helper function to make OpenAI API calls
-async function callOpenAIWithSearch(
-  systemPrompt: string, 
-  userPrompt: string, 
-  locationData: any,
-  model: string = 'gpt-4o',
-  maxTokens: number = 2000
-) {
-  const requestBody = {
-    model: model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt + `\n\nIMPORTANT: Use any web search results provided above for current, accurate information about ${locationData.streetName} in ${locationData.city}, ${locationData.country}.` }
-    ],
-    max_tokens: maxTokens,
-  };
-
-  console.log('🔍 Making OpenAI API call with web search...');
-  console.log('Model:', model);
-  console.log('Location for search:', {
-    country: getCountryCode(locationData.country),
-    city: locationData.city,
-    region: locationData.area || locationData.city,
-  });
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  console.log('Response status:', response.status);
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error('❌ OpenAI API Error:', {
-      status: response.status,
-      error: errorData,
-      model: model,
-      hasApiKey: !!OPENAI_API_KEY
-    });
-    throw new Error(`OpenAI API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
-  console.log('✅ OpenAI API Success');
-  console.log('Response usage:', data.usage);
-  console.log('Has web search results:', data.choices[0]?.message?.web_search_results ? 'Yes' : 'No');
-  
-  if (data.choices[0]?.message?.web_search_results) {
-    console.log('Number of web search results:', data.choices[0].message.web_search_results.length);
-  }
-
-  return data.choices[0]?.message?.content || '';
 }
 
 // Helper function to convert country names to ISO codes
@@ -183,160 +77,147 @@ function getCountryCode(country: string): string {
     'Turkey': 'TR',
     'Russia': 'RU',
     'Ukraine': 'UA',
-    'Belarus': 'BY',
-    'Moldova': 'MD',
-    'Georgia': 'GE',
-    'Armenia': 'AM',
-    'Azerbaijan': 'AZ',
-    'Kazakhstan': 'KZ',
-    'Uzbekistan': 'UZ',
-    'Kyrgyzstan': 'KG',
-    'Tajikistan': 'TJ',
-    'Turkmenistan': 'TM',
-    'Mongolia': 'MN',
     'South Korea': 'KR',
-    'North Korea': 'KP',
     'Taiwan': 'TW',
     'Hong Kong': 'HK',
-    'Macau': 'MO',
     'Singapore': 'SG',
     'Malaysia': 'MY',
     'Thailand': 'TH',
     'Vietnam': 'VN',
     'Philippines': 'PH',
     'Indonesia': 'ID',
-    'Brunei': 'BN',
-    'Cambodia': 'KH',
-    'Laos': 'LA',
-    'Myanmar': 'MM',
-    'Bangladesh': 'BD',
-    'Bhutan': 'BT',
-    'Nepal': 'NP',
-    'Sri Lanka': 'LK',
-    'Maldives': 'MV',
-    'Pakistan': 'PK',
-    'Afghanistan': 'AF',
-    'Iran': 'IR',
-    'Iraq': 'IQ',
-    'Syria': 'SY',
-    'Lebanon': 'LB',
-    'Jordan': 'JO',
-    'Israel': 'IL',
-    'Palestine': 'PS',
-    'Saudi Arabia': 'SA',
-    'United Arab Emirates': 'AE',
-    'Qatar': 'QA',
-    'Kuwait': 'KW',
-    'Bahrain': 'BH',
-    'Oman': 'OM',
-    'Yemen': 'YE',
-    'Egypt': 'EG',
-    'Libya': 'LY',
-    'Tunisia': 'TN',
-    'Algeria': 'DZ',
-    'Morocco': 'MA',
-    'Sudan': 'SD',
-    'South Sudan': 'SS',
-    'Ethiopia': 'ET',
-    'Eritrea': 'ER',
-    'Djibouti': 'DJ',
-    'Somalia': 'SO',
-    'Kenya': 'KE',
-    'Uganda': 'UG',
-    'Tanzania': 'TZ',
-    'Rwanda': 'RW',
-    'Burundi': 'BI',
-    'Democratic Republic of the Congo': 'CD',
-    'Republic of the Congo': 'CG',
-    'Central African Republic': 'CF',
-    'Chad': 'TD',
-    'Cameroon': 'CM',
-    'Nigeria': 'NG',
-    'Niger': 'NE',
-    'Mali': 'ML',
-    'Burkina Faso': 'BF',
-    'Ivory Coast': 'CI',
-    'Ghana': 'GH',
-    'Togo': 'TG',
-    'Benin': 'BJ',
-    'Guinea': 'GN',
-    'Guinea-Bissau': 'GW',
-    'Sierra Leone': 'SL',
-    'Liberia': 'LR',
-    'Senegal': 'SN',
-    'Gambia': 'GM',
-    'Cape Verde': 'CV',
-    'Mauritania': 'MR',
-    'Western Sahara': 'EH',
+    'New Zealand': 'NZ',
     'South Africa': 'ZA',
-    'Lesotho': 'LS',
-    'Swaziland': 'SZ',
-    'Botswana': 'BW',
-    'Namibia': 'NA',
-    'Zambia': 'ZM',
-    'Zimbabwe': 'ZW',
-    'Mozambique': 'MZ',
-    'Madagascar': 'MG',
-    'Mauritius': 'MU',
-    'Seychelles': 'SC',
-    'Comoros': 'KM',
-    'Mayotte': 'YT',
-    'Réunion': 'RE',
     'Argentina': 'AR',
     'Chile': 'CL',
-    'Uruguay': 'UY',
-    'Paraguay': 'PY',
-    'Bolivia': 'BO',
-    'Peru': 'PE',
-    'Ecuador': 'EC',
     'Colombia': 'CO',
-    'Venezuela': 'VE',
-    'Guyana': 'GY',
-    'Suriname': 'SR',
-    'French Guiana': 'GF',
-    'Guatemala': 'GT',
-    'Belize': 'BZ',
-    'El Salvador': 'SV',
-    'Honduras': 'HN',
-    'Nicaragua': 'NI',
-    'Costa Rica': 'CR',
-    'Panama': 'PA',
-    'Cuba': 'CU',
-    'Jamaica': 'JM',
-    'Haiti': 'HT',
-    'Dominican Republic': 'DO',
-    'Puerto Rico': 'PR',
-    'Trinidad and Tobago': 'TT',
-    'Barbados': 'BB',
-    'Saint Lucia': 'LC',
-    'Grenada': 'GD',
-    'Saint Vincent and the Grenadines': 'VC',
-    'Antigua and Barbuda': 'AG',
-    'Dominica': 'DM',
-    'Saint Kitts and Nevis': 'KN',
-    'Bahamas': 'BS',
-    'New Zealand': 'NZ',
-    'Fiji': 'FJ',
-    'Papua New Guinea': 'PG',
-    'Solomon Islands': 'SB',
-    'New Caledonia': 'NC',
-    'French Polynesia': 'PF',
-    'Vanuatu': 'VU',
-    'Samoa': 'WS',
-    'Kiribati': 'KI',
-    'Tonga': 'TO',
-    'Micronesia': 'FM',
-    'Palau': 'PW',
-    'Marshall Islands': 'MH',
-    'Nauru': 'NR',
-    'Tuvalu': 'TV'
+    'Peru': 'PE',
+    'Egypt': 'EG',
+    'Morocco': 'MA',
+    'Israel': 'IL',
+    'United Arab Emirates': 'AE',
+    'Saudi Arabia': 'SA',
   };
   
-  return countryMap[country] || 'US'; // Default to US if country not found
+  return countryMap[country] || 'US';
+}
+
+// Get timezone from country code (simplified)
+function getTimezone(countryCode: string, city: string): string {
+  const timezoneMap: { [key: string]: string } = {
+    'US': 'America/New_York',
+    'GB': 'Europe/London',
+    'CA': 'America/Toronto',
+    'AU': 'Australia/Sydney',
+    'DE': 'Europe/Berlin',
+    'FR': 'Europe/Paris',
+    'IT': 'Europe/Rome',
+    'ES': 'Europe/Madrid',
+    'JP': 'Asia/Tokyo',
+    'CN': 'Asia/Shanghai',
+    'IN': 'Asia/Kolkata',
+    'BR': 'America/Sao_Paulo',
+    'MX': 'America/Mexico_City',
+  };
+  return timezoneMap[countryCode] || 'UTC';
+}
+
+// Call OpenAI Responses API with web_search tool for real-time research
+async function callOpenAIResponsesAPI(
+  prompt: string,
+  locationData: { city: string; area: string; country: string },
+  maxOutputTokens: number = 16000
+): Promise<{ content: string; sources: string[] }> {
+  const countryCode = getCountryCode(locationData.country);
+  const timezone = getTimezone(countryCode, locationData.city);
+  
+  console.log('🔍 Calling OpenAI Responses API with web_search tool...');
+  console.log('Location context:', { 
+    city: locationData.city, 
+    region: locationData.area || locationData.city,
+    country: countryCode,
+    timezone 
+  });
+
+  const requestBody = {
+    model: 'gpt-4o',
+    input: prompt,
+    tools: [
+      {
+        type: 'web_search',
+        user_location: {
+          type: 'approximate',
+          city: locationData.city,
+          region: locationData.area || locationData.city,
+          country: countryCode,
+          timezone: timezone
+        }
+      }
+    ],
+    tool_choice: 'auto',
+    max_output_tokens: maxOutputTokens,
+  };
+
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  console.log('Response status:', response.status);
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('❌ OpenAI Responses API Error:', {
+      status: response.status,
+      error: errorData,
+    });
+    throw new Error(`OpenAI API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  console.log('✅ OpenAI Responses API Success');
+  
+  // Extract content and sources from the response
+  let content = '';
+  const sources: string[] = [];
+  
+  if (data.output && Array.isArray(data.output)) {
+    for (const item of data.output) {
+      // Handle web search results
+      if (item.type === 'web_search_call') {
+        console.log('📡 Web search performed:', item.action);
+      }
+      
+      // Handle message content
+      if (item.type === 'message' && item.content) {
+        for (const contentItem of item.content) {
+          if (contentItem.type === 'output_text') {
+            content += contentItem.text;
+            
+            // Extract URL citations
+            if (contentItem.annotations) {
+              for (const annotation of contentItem.annotations) {
+                if (annotation.type === 'url_citation' && annotation.url) {
+                  sources.push(annotation.url);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`📚 Found ${sources.length} sources from web search`);
+  
+  return { content, sources: [...new Set(sources)] };
 }
 
 serve(async (req) => {
-  // Always set CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -344,23 +225,15 @@ serve(async (req) => {
   };
 
   try {
-    // Handle CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Check for required environment variables
     if (!OPENAI_API_KEY) {
       console.error('Missing OPENAI_API_KEY environment variable');
       return new Response(
-        JSON.stringify({ error: 'Server configuration error: Missing OpenAI API key. Please contact support.' }),
-        { 
-          status: 500,
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        }
+        JSON.stringify({ error: 'Server configuration error: Missing OpenAI API key.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
@@ -369,469 +242,159 @@ serve(async (req) => {
     if (!locationData || !interests || interests.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
-        { 
-          status: 400,
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        }
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    // Format places list for the prompts
+    // Format places list - these are OPTIONAL context, not the primary focus
     const placesListFormatted = places && places.length > 0 
       ? places.map(p => {
           const rating = p.rating ? ` (${p.rating}★` + (p.userRatingsTotal ? `, ${p.userRatingsTotal} reviews)` : ')') : '';
-          return `- ${p.name} at ${p.address}${rating}
-   Types: ${p.type.join(', ')}`;
+          return `- ${p.name}: ${p.type.join(', ')}${rating}`;
         }).join('\n')
-      : 'No specific places selected - focusing on street exploration';
+      : '';
 
-    const baseLocationInfo = `
-**LOCATION**: ${locationData.streetName}, ${locationData.area || ''} ${locationData.city}, ${locationData.country}
-**COORDINATES**: ${locationData.latitude}, ${locationData.longitude}
-**PLACES FOCUS**:
-${placesListFormatted}
-**USER INTERESTS**: ${interests.join(', ')}`;
-
-    const historyUserPrompt = `Research the history and development of ${locationData.streetName} in ${locationData.city}, ${locationData.country}. 
-
-${baseLocationInfo}
-
-Find information about:
-1. The origins and naming of ${locationData.streetName}
-2. Historical development and significant periods of change
-3. Notable historical events that occurred on or near this street
-4. Historical figures associated with this street
-5. How the street's character and purpose evolved over time
-6. Architectural periods and building styles historically present
-7. Economic and social history of the area
-
-Please provide detailed, factual information with specific dates, names, and events. Focus on verified historical facts that would interest someone walking this street today.`;
-
-    const currentUserPrompt = places && places.length > 0 
-      ? `Research detailed information about these SPECIFIC PLACES that the user wants to learn about on ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
-
-${baseLocationInfo}
-
-**PRIORITY**: Focus your research on these exact places the user selected:
-${placesListFormatted}
-
-For each of the places listed above, find:
-1. **Detailed business information**: Current hours, services, specialties, what they're known for
-2. **History and significance**: When they opened, notable events, famous visitors
-3. **Current reviews and reputation**: What people say about them, why they're worth visiting
-4. **Unique features**: What makes each place special or different
-5. **Cultural role**: How they contribute to the street's character and community
-6. **Recent news or changes**: Any recent renovations, awards, or developments
-7. **Visitor experience**: What someone can see, do, or experience at each location
-
-Also research:
-- Current cultural significance of this street in the city
-- Local community events or festivals associated with this area
-- Food culture and specialties available on this street
-- Transportation and accessibility for visitors
-
-Focus 80% of your research on the specific selected places listed above, and 20% on general street context.`
-      : `Research comprehensive information about ${locationData.streetName} in ${locationData.city}, ${locationData.country} for a street-focused walking tour.
-
-${baseLocationInfo}
-
-Since the user wants to explore the street itself rather than specific places, focus your research on:
-
-**STREET CHARACTER & ATMOSPHERE**:
-1. **Current street life**: What makes this street unique, daily rhythms, street culture
-2. **Notable buildings and architecture**: Interesting buildings, architectural styles, design elements
-3. **Street layout and urban design**: How the street is designed, pedestrian areas, interesting intersections
-4. **Local businesses and establishments**: What types of businesses line the street, local favorites
-5. **Community gathering spots**: Where locals meet, public spaces, street furniture
-6. **Seasonal changes**: How the street changes throughout the year
-
-**CULTURAL & SOCIAL ASPECTS**:
-7. **Local community**: Who lives and works here, neighborhood character
-8. **Street art and public installations**: Murals, sculptures, interesting signage
-9. **Events and activities**: Street festivals, markets, regular community events
-10. **Walking experience**: What visitors can see, hear, and experience while walking
-
-**PRACTICAL VISITOR INFORMATION**:
-11. **Best walking routes**: Interesting paths along the street
-12. **Photo opportunities**: Notable views, interesting architectural details
-13. **Accessibility**: Pedestrian-friendly areas, seating, public facilities
-14. **Local tips**: Best times to visit, hidden details to look for
-
-Focus on creating a rich portrait of the street itself as a living, breathing place with its own character and stories.`;
-
-    const tourSystemPrompt = `You are a world-class tour guide specializing in creating engaging, street-focused walking tours. You excel at weaving historical research and current information into compelling narratives that make visitors feel like they're walking with a knowledgeable local friend.`;
-
-    // Execute comprehensive multi-stage research with PARALLEL processing
-    console.log('Starting comprehensive tour research with parallel processing...');
-    
-    // Define all research stages upfront
-    const historySystemPrompt = `You are a professional historical researcher specializing in urban history and street development. Use web search to find accurate, detailed historical information about specific streets and neighborhoods.`;
-    
-    const currentSystemPrompt = `You are a local area specialist and cultural researcher. Use web search to find current, accurate information about specific businesses and places. Focus heavily on the exact places provided and their current status, reviews, and significance.`;
-    
-    const culturalSystemPrompt = `You are a cultural anthropologist and social historian specializing in urban culture. Research the cultural significance, social dynamics, and community aspects of specific streets and neighborhoods.`;
-    
-    const architectureSystemPrompt = `You are an architectural historian and urban planning expert. Research the architectural styles, building history, and urban design elements of specific streets.`;
-    
-    const secretsSystemPrompt = `You are a local insider and urban explorer who knows all the hidden gems, local secrets, and lesser-known stories about city streets. Focus on unique, surprising, and insider information.`;
-    
-    const practicalSystemPrompt = `You are a travel advisor specializing in practical, up-to-date information for visitors. Focus on current logistics, accessibility, and visitor tips.`;
-
-    const culturalUserPrompt = `Research the cultural and social significance of ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
-
-${baseLocationInfo}
-
-Find information about:
-1. **Cultural movements and artistic significance** - Any cultural movements that started or flourished here
-2. **Famous residents and visitors** - Notable people who lived, worked, or spent time on this street
-3. **Cultural institutions** - Museums, galleries, theaters, cultural centers
-4. **Local traditions and festivals** - Annual events, parades, celebrations unique to this area
-5. **Street art and public installations** - Murals, sculptures, monuments
-6. **Music and performance history** - Concerts, street performers, music venues
-7. **Literary connections** - Books set here, authors who wrote about this street
-8. **Film and TV locations** - Movies or shows filmed on this street
-9. **Local community dynamics** - How locals use and perceive this street
-10. **Subcultural significance** - Any subcultures or movements associated with the area`;
-
-    const architectureUserPrompt = `Research the architecture and urban design of ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
-
-${baseLocationInfo}
-
-Find information about:
-1. **Architectural styles and periods** - Dominant architectural movements represented
-2. **Notable buildings and structures** - Significant buildings, their architects, and construction dates
-3. **Urban planning history** - How the street layout and design evolved
-4. **Building materials and techniques** - Common construction methods and materials used
-5. **Preservation and renovations** - Historic preservation efforts, major renovations
-6. **Skyline and streetscape changes** - How the visual appearance has changed over time
-7. **Public spaces and urban furniture** - Parks, plazas, benches, lighting
-8. **Transportation infrastructure** - How transit has shaped the street
-9. **Future development plans** - Upcoming construction or urban planning initiatives`;
-
-    const secretsUserPrompt = `Research hidden gems, local secrets, and lesser-known facts about ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
-
-${baseLocationInfo}
-
-Find information about:
-1. **Hidden courtyards and passages** - Secret alleys, hidden gardens, unmarked entrances
-2. **Local legends and urban myths** - Stories locals tell, urban legends specific to this street
-3. **Best-kept secret businesses** - Hidden speakeasies, unmarked restaurants, secret shops
-4. **Unusual historical facts** - Bizarre or surprising historical events that occurred here
-5. **Local tips and tricks** - Where locals go, best times to visit, insider knowledge
-6. **Underground history** - Tunnels, prohibition-era secrets, underground movements
-7. **Ghost stories and mysteries** - Unexplained events, haunted locations, mysteries
-8. **Street quirks and oddities** - Unusual features, strange laws, weird traditions
-9. **Celebrity secrets** - Where famous people secretly hang out or hidden celebrity connections
-10. **Instagram-worthy secret spots** - Hidden photo opportunities locals know about`;
-
-    const practicalUserPrompt = `Research practical visitor information for ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
-
-${baseLocationInfo}
-
-Find current information about:
-1. **Transportation and parking** - How to get there, parking options, public transit
-2. **Best times to visit** - Seasonal considerations, crowd patterns, optimal visiting hours
-3. **Safety and accessibility** - Safety tips, wheelchair accessibility, family-friendly areas
-4. **Nearby amenities** - Restrooms, ATMs, tourist information centers
-5. **Cost considerations** - Free activities vs paid, typical costs, money-saving tips
-6. **Weather considerations** - How weather affects the experience, seasonal changes
-7. **Photography rules** - Where photos are allowed, best photo spots, drone policies
-8. **COVID or health updates** - Any current health guidelines or restrictions
-9. **Wi-Fi and connectivity** - Free Wi-Fi spots, cell coverage
-10. **Emergency information** - Nearest hospitals, police stations, emergency contacts`;
-
-    // Execute optimized research with strategic web searches
-    console.log('Executing optimized 6-stage research...');
-    
-    // STAGE 1: Web search (with timeout protection)
-    console.log('Stage 1: Web search with timeout protection...');
-    let combinedWebResults = '';
-    
-    try {
-      const masterSearchQuery = `${locationData.streetName} ${locationData.city} comprehensive guide history culture architecture hidden gems current attractions visitor information 2025`;
-      const placesSearchQuery = `${placesListFormatted.replace(/\n/g, ' ')} ${locationData.streetName} ${locationData.city} current hours reviews what to see`;
-      
-      // Use Promise.race with timeout to prevent hanging
-      const searchPromises = Promise.all([
-        searchWeb(masterSearchQuery, locationData.country),
-        searchWeb(placesSearchQuery, locationData.country)
-      ]);
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Web search timeout')), 15000)
-      );
-      
-      const [masterWebResults, placesWebResults] = await Promise.race([
-        searchPromises,
-        timeoutPromise
-      ]) as [string, string];
-      
-      combinedWebResults = masterWebResults + '\n\n' + placesWebResults;
-      console.log('✅ Web search completed successfully');
-    } catch (error) {
-      console.log('⚠️ Web search failed or timed out, proceeding without web data:', error.message);
-      combinedWebResults = '\n\n**Note: Web search unavailable, using AI knowledge base only.**\n\n';
-    }
-    
-    // STAGES 3-8: Execute all AI research in parallel using the same web data
-    console.log('Stages 3-8: Executing all AI research in parallel...');
-    
-    const [
-      historicalContext,
-      currentContext,
-      culturalContext,
-      architectureContext,
-      secretsContext,
-      practicalContext
-    ] = await Promise.all([
-      // Historical Research - using faster model
-      callOpenAIWithSearch(
-        historySystemPrompt, 
-        historyUserPrompt + combinedWebResults, 
-        locationData,
-        'gpt-4o-mini',
-        1500
-      ),
-      
-      // Current Business Research - using faster model
-      callOpenAIWithSearch(
-        currentSystemPrompt, 
-        currentUserPrompt + combinedWebResults, 
-        locationData,
-        'gpt-4o-mini', 
-        1500
-      ),
-      
-      // Cultural Research - using faster model
-      callOpenAIWithSearch(
-        culturalSystemPrompt,
-        culturalUserPrompt + combinedWebResults,
-        locationData,
-        'gpt-4o-mini',
-        1200
-      ),
-      
-      // Architecture Research - using faster model
-      callOpenAIWithSearch(
-        architectureSystemPrompt,
-        architectureUserPrompt + combinedWebResults,
-        locationData,
-        'gpt-4o-mini',
-        1200
-      ),
-      
-      // Hidden Gems Research - using faster model
-      callOpenAIWithSearch(
-        secretsSystemPrompt,
-        secretsUserPrompt + combinedWebResults,
-        locationData,
-        'gpt-4o-mini',
-        1200
-      ),
-      
-      // Practical Information - using faster model
-      callOpenAIWithSearch(
-        practicalSystemPrompt,
-        practicalUserPrompt + combinedWebResults,
-        locationData,
-        'gpt-4o-mini',
-        1200
-      )
-    ]);
-
-    console.log('🎉 All 6 research stages completed!');
-
-    // FINAL STAGE: Comprehensive Tour Synthesis
-    console.log('Final Stage: Creating comprehensive tour narrative...');
-    
     const hasSelectedPlaces = places && places.length > 0;
-    
-    const tourUserPrompt = hasSelectedPlaces 
-      ? `Create a comprehensive, engaging walking tour (20-25 minutes of spoken content) for ${locationData.streetName} in ${locationData.city}. Synthesize ALL the research provided to craft a rich, detailed, factual narrative that brings the street to life.
 
-**LOCATION DETAILS**:
-${baseLocationInfo}
+    console.log('🚀 Starting comprehensive tour generation with web search...');
+    console.log('Location:', locationData.streetName, locationData.city, locationData.country);
+    console.log('User interests (subtle influence):', interests);
+    console.log('Selected places (optional context):', hasSelectedPlaces ? places.length : 'None');
 
-**COMPREHENSIVE RESEARCH GATHERED**:
+    // Build the comprehensive research prompt
+    // KEY CHANGE: Interests and businesses are SUBTLE INFLUENCES, not the primary focus
+    // PRIMARY FOCUS: Deep historical research on the street itself
+    const researchPrompt = `You are a world-class historian and tour guide creating an immersive walking tour. Your PRIMARY mission is to research and present the COMPLETE HISTORY of ${locationData.streetName} in ${locationData.city}, ${locationData.country}.
 
-**1. HISTORICAL CONTEXT**:
-${historicalContext}
+## YOUR RESEARCH MISSION
 
-**2. CURRENT BUSINESSES & PLACES**:
-${currentContext}
+Search the web thoroughly to discover EVERYTHING about this street:
 
-**3. CULTURAL & SOCIAL SIGNIFICANCE**:
-${culturalContext}
+### 1. STREET ORIGINS & NAMING (Search for this)
+- When was ${locationData.streetName} first established? What year?
+- Why is it called "${locationData.streetName}"? Who or what was it named after?
+- What was here BEFORE this street existed? What did the land look like?
+- How has the street's name changed over time?
 
-**4. ARCHITECTURE & URBAN DESIGN**:
-${architectureContext}
+### 2. HISTORICAL TIMELINE (Search for this)
+- What major historical events happened ON or NEAR this street?
+- What famous people walked this street? Who lived here? Who died here?
+- What buildings were built and demolished over the centuries?
+- How did this street change during major historical periods (wars, revolutions, economic booms/busts)?
+- What crimes, scandals, or tragedies occurred here?
+- What celebrations, achievements, or moments of joy happened here?
 
-**5. HIDDEN GEMS & LOCAL SECRETS**:
-${secretsContext}
+### 3. ARCHITECTURAL HISTORY (Search for this)
+- What are the oldest buildings on this street? When were they built?
+- What architectural styles are represented? Victorian? Art Deco? Brutalist? Modern?
+- Who were the architects? What were their stories?
+- What buildings were demolished and why? What replaced them?
+- Are there any hidden architectural details visitors should notice?
 
-**6. PRACTICAL VISITOR INFORMATION**:
-${practicalContext}
+### 4. CULTURAL & SOCIAL HISTORY (Search for this)
+- What role has this street played in the city's culture?
+- What movements, protests, or cultural shifts happened here?
+- What famous films, books, or songs feature this street?
+- What local legends, ghost stories, or urban myths are associated with it?
+- How has the neighborhood's demographics changed over time?
 
-**CRITICAL**: The user specifically wants to learn about these places:
-${placesListFormatted}
+### 5. NOTABLE EVENTS & STORIES (Search for this)
+- What specific events happened at specific addresses on this street?
+- What businesses opened and closed? What were their stories?
+- What famous visitors came to this street? What did they do here?
+- What everyday life was like on this street in different eras?
 
-**TOUR REQUIREMENTS**:
-Create a comprehensive tour that:
-1. **Opens with a captivating introduction** that sets the scene using multiple layers of context
-2. **Creates detailed stops** for each user-selected place, enriched with ALL relevant research
-3. **Weaves together ALL research types** - historical, cultural, architectural, and secrets
-4. **Includes specific facts, dates, and stories** from the research to add credibility
-5. **Connects to user interests** (${interests.join(', ')}) throughout the narrative
-6. **Incorporates practical tips** naturally into the tour flow
-7. **Reveals surprising secrets and hidden gems** to delight and surprise
-8. **Uses architectural and cultural details** to help visitors truly see the street
-9. **Builds a narrative arc** that connects past, present, and future
-10. **Concludes powerfully** with personalized recommendations and a call to explore
+## LOCATION DETAILS
+- **Street**: ${locationData.streetName}
+- **City**: ${locationData.city}
+- **Country**: ${locationData.country}
+- **Area/Neighborhood**: ${locationData.area || 'Not specified'}
+- **Coordinates**: ${locationData.latitude}, ${locationData.longitude}
 
-**ENHANCED STRUCTURE**:
-- **Grand Introduction** (3-4 minutes) – Set the scene with historical grandeur, cultural significance, and a preview of secrets to come
-- **Stop 1: [First selected place]** (3-4 minutes) – Deep dive using ALL research angles
-- **Transition & Street Context** (2-3 minutes) – Architecture, urban design, cultural notes while walking
-- **Stop 2: [Second selected place]** (3-4 minutes) – Comprehensive exploration with surprises
-- **Hidden Gems Interlude** (2-3 minutes) – Share secrets and lesser-known spots
-- **Stop 3: [Third selected place]** (3-4 minutes) – Full treatment with all research integrated
-- [Continue pattern for all selected places...]
-- **Grand Finale** (3-4 minutes) – Synthesis, practical tips, and inspiring send-off
+${hasSelectedPlaces ? `## PLACES THE USER NOTICED (Use as subtle context, NOT primary focus)
+The user noticed these places while exploring. You may briefly mention them IF they have interesting historical connections, but do NOT structure the tour around them. The street's history is the star, not these businesses:
+${placesListFormatted}` : ''}
 
-**TONE**: Rich and multilayered – combine the authority of a historian, the insight of a cultural critic, the knowledge of an architect, the intimacy of a local friend, and the flair of a master storyteller.
+## USER'S INTERESTS (Subtle flavor, NOT primary focus)
+The user has these interests: ${interests.join(', ')}
 
-**LENGTH**: Aim for a substantial narrative of 20-25 minutes of spoken content (approximately 3,000–3,750 words) to ensure comprehensive coverage.
+When you encounter historical facts that naturally connect to these interests, you may highlight them slightly. But do NOT invent connections or force the narrative to match these interests. If the street's history doesn't naturally connect to their interests, that's fine - the authentic history is more valuable than forced relevance.
 
-**FOCUS**: Create a 360-degree portrait of the street where:
-- 40% focuses on the overall street context (history, culture, architecture, atmosphere)
-- 30% deep-dives into the user's selected places
-- 20% reveals hidden gems and local secrets
-- 10% provides practical tips woven throughout
+## OUTPUT FORMAT
 
-**QUALITY REQUIREMENTS**:
-- Every claim must be supported by the research provided
-- Include specific dates, names, and verifiable facts
-- Balance grand historical narratives with intimate local details
-- Create "aha!" moments with surprising connections and revelations
-- Make visitors feel like insiders with exclusive knowledge
+Create a comprehensive, engaging walking tour narration (25-35 minutes of spoken content, approximately 4,000-5,500 words) structured as follows:
 
-Create a tour that visitors will remember for years – one that transforms a simple walk into an unforgettable journey through time, culture, and human stories.`
-      : `Create a comprehensive, engaging street-focused walking tour (20-25 minutes of spoken content) for ${locationData.streetName} in ${locationData.city}. Since the user chose to explore the street itself rather than specific places, synthesize ALL the research provided to craft a rich, detailed, factual narrative that brings the street to life as a living, breathing place.
+### OPENING (3-4 minutes)
+Set the scene. Transport the listener back in time. What would they have seen on this street 100, 200, or 500 years ago? Make them feel the weight of history beneath their feet.
 
-**LOCATION DETAILS**:
-${baseLocationInfo}
+### HISTORICAL JOURNEY (15-20 minutes)
+Walk the listener through the street's history chronologically or thematically. Include:
+- Specific dates, names, and verifiable facts
+- Vivid descriptions of what the street looked like in different eras
+- Stories of real people who lived, worked, and died here
+- Dramatic moments - the fires, the floods, the celebrations, the tragedies
+- Architectural details they can still see today that connect to the past
 
-**COMPREHENSIVE RESEARCH GATHERED**:
+### HIDDEN GEMS & SECRETS (5-7 minutes)
+Share lesser-known facts, local legends, and details that only a true historian would know. Make the listener feel like an insider.
 
-**1. HISTORICAL CONTEXT**:
-${historicalContext}
+### CLOSING (2-3 minutes)
+Reflect on how this street connects past to present. What stories does it still have to tell? What should the listener notice as they continue walking?
 
-**2. STREET CHARACTER & CURRENT LIFE**:
-${currentContext}
+## CRITICAL REQUIREMENTS
+1. **CITE SPECIFIC FACTS**: Include actual dates, names, and events you discover through web search
+2. **BE HONEST**: If you cannot find information about something, say so rather than inventing
+3. **PRIORITIZE AUTHENTICITY**: Real history is more interesting than fabricated connections to user interests
+4. **USE VIVID LANGUAGE**: Paint pictures with words - help listeners SEE the history
+5. **INCLUDE SOURCES**: Your research should be grounded in real historical records
 
-**3. CULTURAL & SOCIAL SIGNIFICANCE**:
-${culturalContext}
+Now, search the web thoroughly and create this comprehensive historical walking tour.`;
 
-**4. ARCHITECTURE & URBAN DESIGN**:
-${architectureContext}
-
-**5. HIDDEN GEMS & LOCAL SECRETS**:
-${secretsContext}
-
-**6. PRACTICAL VISITOR INFORMATION**:
-${practicalContext}
-
-**STREET-FOCUSED TOUR REQUIREMENTS**:
-Create a comprehensive tour that:
-1. **Opens with a captivating introduction** that establishes the street's unique character and significance
-2. **Tells the street's story** through historical development, architectural evolution, and cultural transformation
-3. **Guides visitors' attention** to notice details they would otherwise miss - architectural features, urban design elements, cultural markers
-4. **Weaves together ALL research types** - historical, cultural, architectural, and secrets - into a cohesive street narrative
-5. **Includes specific facts, dates, and stories** from the research to add credibility and depth
-6. **Connects to user interests** (${interests.join(', ')}) throughout the narrative
-7. **Reveals hidden details and secrets** that make visitors see the street with new eyes
-8. **Creates a sense of place** that helps visitors understand what makes this street special
-9. **Builds a narrative arc** that moves visitors along the street while connecting past, present, and future
-10. **Concludes powerfully** with insights about the street's ongoing evolution and future
-
-**STREET-FOCUSED STRUCTURE**:
-- **Grand Introduction** (4-5 minutes) – Establish the street's character, preview its stories, and set expectations for discovery
-- **Historical Foundation** (4-5 minutes) – The street's origins, development, and how it became what it is today
-- **Architectural Journey** (4-5 minutes) – Guide attention to buildings, design elements, and urban planning that tells the street's story
-- **Cultural & Social Life** (4-5 minutes) – How people use this street, community dynamics, local traditions, and cultural significance
-- **Hidden Secrets & Local Insights** (4-5 minutes) – Reveal lesser-known aspects, local stories, and details only insiders know
-- **Contemporary Character** (2-3 minutes) – What the street is today, current businesses, community life, and ongoing changes
-- **Grand Finale** (2-3 minutes) – Synthesis of the street's essence, practical exploration tips, and inspiring send-off
-
-**TONE**: Rich and immersive – combine the authority of a historian, the eye of an urban planner, the insight of a cultural anthropologist, the intimacy of a local resident, and the storytelling flair of a master guide.
-
-**LENGTH**: Aim for a substantial narrative of 20-25 minutes of spoken content (approximately 3,000–3,750 words) to ensure comprehensive street exploration.
-
-**FOCUS**: Create a complete portrait of the street where:
-- 50% focuses on the street's character, atmosphere, and what makes it unique
-- 25% explores historical development and architectural features
-- 15% reveals hidden gems, local secrets, and insider knowledge
-- 10% provides practical tips for deeper exploration
-
-**QUALITY REQUIREMENTS**:
-- Every claim must be supported by the research provided
-- Include specific dates, names, and verifiable facts about the street
-- Help visitors notice details they would otherwise overlook
-- Create "aha!" moments with surprising connections and revelations
-- Make visitors feel like they understand the street's soul and significance
-- Guide their eyes to see architectural details, urban design choices, and cultural markers
-
-Create a tour that transforms a simple street into a fascinating world – one that makes visitors feel they've discovered a hidden gem and understand a place in a completely new way.`;
-
-    const finalNarration = await callOpenAIWithSearch(
-      tourSystemPrompt,
-      tourUserPrompt,
+    // Execute the research with web search
+    const { content: tourNarration, sources } = await callOpenAIResponsesAPI(
+      researchPrompt,
       locationData,
-      'gpt-4o',
-      4000  // Increased token limit for longer tour
+      16000
     );
 
-    // Generate a unique tour ID
+    if (!tourNarration || tourNarration.trim().length === 0) {
+      throw new Error('Failed to generate tour content');
+    }
+
+    console.log('🎉 Tour generated successfully!');
+    console.log('Content length:', tourNarration.length, 'characters');
+    console.log('Sources used:', sources.length);
+
+    // Generate tour ID
     const tourId = `tour_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Extract a title and description from the narration
-    const lines = finalNarration.split('\n').filter(line => line.trim().length > 0);
-    const title = `${locationData.streetName} Walking Tour`;
-    const description = lines[0].substring(0, 150) + '...';
+    // Extract first meaningful line for description
+    const lines = tourNarration.split('\n').filter(line => line.trim().length > 20);
+    const description = lines[0]?.substring(0, 200) + '...' || `A comprehensive historical tour of ${locationData.streetName}`;
+
+    // Estimate duration based on word count (average speaking rate: 150 words/minute)
+    const wordCount = tourNarration.split(/\s+/).length;
+    const estimatedMinutes = Math.round(wordCount / 150);
 
     const response: TourResponse = {
       tourId,
-      narration: finalNarration,
-      title,
+      narration: tourNarration,
+      title: `${locationData.streetName}: A Historical Journey`,
       description,
-      estimatedDuration: 25, // 20-25 minute comprehensive tour
-      distance: '0.8 mi' // Default distance
+      estimatedDuration: Math.max(20, Math.min(40, estimatedMinutes)),
+      distance: '0.8 mi'
     };
 
     return new Response(
       JSON.stringify(response),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      }
+      { headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
 
   } catch (error) {
     console.error('Generate tour error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }
-}); 
+});

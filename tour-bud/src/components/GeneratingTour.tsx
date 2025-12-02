@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, FileText, Mic, CheckCircle, Check, AlertCircle } from 'lucide-react';
+import { Search, Check, AlertCircle, Globe, CheckCircle, Clock, Sparkles } from 'lucide-react';
 import tourService from '../services/tourService';
 
 interface LoadingStep {
@@ -9,51 +9,90 @@ interface LoadingStep {
   title: string;
   description: string;
   icon: React.ReactNode;
-  duration: number;
 }
 
 const GeneratingTour: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  
+  const startTimeRef = useRef<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedRef = useRef<boolean>(false);
 
   // Get location, interests, and selected places from navigation state
-  const { coordinates, interests, geocodeData, selectedPlaces } = location.state || {};
+  const { coordinates, interests, geocodeData, selectedPlaces, nearbyPlaces } = location.state || {};
 
+  // 3 simple stages for Perplexity research
   const steps: LoadingStep[] = [
     {
       id: 1,
-      title: "Processing Location & Places",
-      description: "Organizing your location data and selected places for tour generation",
-      icon: <FileText size={24} />,
-      duration: 5000
+      title: "Searching",
+      description: "Finding information about your location and places",
+      icon: <Search size={24} />,
     },
     {
       id: 2,
-      title: "Researching Your Places",
-      description: "Deep research on your selected places: history, reviews, stories, and significance",
-      icon: <Search size={24} />,
-      duration: 30000
+      title: "Researching",
+      description: "Reading through sources and gathering facts",
+      icon: <Globe size={24} />,
     },
     {
       id: 3,
-      title: "Creating Your Personalized Tour",
-      description: "Crafting a walking tour focused on your chosen places and interests",
-      icon: <Mic size={24} />,
-      duration: 20000
-    },
-    {
-      id: 4,
-      title: "Finalizing Your Experience",
-      description: "Optimizing your route and preparing the personalized tour",
+      title: "Writing",
+      description: "Creating your personalized tour content",
       icon: <CheckCircle size={24} />,
-      duration: 2000
     }
   ];
+
+  // Format elapsed time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Start the elapsed time counter
+  const startTimer = useCallback(() => {
+    startTimeRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      setElapsedTime(elapsed);
+    }, 1000);
+  }, []);
+  
+  // Progress through steps on a fixed schedule (independent of API)
+  useEffect(() => {
+    if (!isGenerating) return;
+    
+    // Step 1: After 3 seconds, move to "Researching"
+    const step1Timer = setTimeout(() => {
+      setCompletedSteps([0]);
+      setCurrentStep(1);
+    }, 3000);
+    
+    // Step 2: After 25 seconds, move to "Writing"
+    const step2Timer = setTimeout(() => {
+      setCompletedSteps([0, 1]);
+      setCurrentStep(2);
+    }, 25000);
+    
+    return () => {
+      clearTimeout(step1Timer);
+      clearTimeout(step2Timer);
+    };
+  }, [isGenerating]);
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!coordinates || !interests || !geocodeData || !selectedPlaces) {
@@ -62,87 +101,60 @@ const GeneratingTour: React.FC = () => {
       return;
     }
 
-    generateTour();
+    // Prevent duplicate calls (React strict mode, rerenders, etc.)
+    if (hasStartedRef.current || isGenerating) {
+      return;
+    }
+    hasStartedRef.current = true;
+    
+    generateTourWithPerplexity();
   }, [coordinates, interests, geocodeData, selectedPlaces]);
 
-  const generateTour = async () => {
+  const generateTourWithPerplexity = async () => {
     if (isGenerating) return;
     setIsGenerating(true);
+    startTimer();
 
     try {
-      // Step 1: Process location and places data
       setCurrentStep(0);
-      let progressTimer = startStepProgress(0);
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      completeStep(0, progressTimer);
-      
-      // Step 2: Research places (this is where the main work happens)
-      setCurrentStep(1);
-      progressTimer = startStepProgress(1);
-      
-      const tourData = await tourService.generateTour(
+
+      // Use Perplexity - it's synchronous (no polling needed)
+      const tourData = await tourService.generatePerplexityTour(
         { ...geocodeData, latitude: coordinates.latitude, longitude: coordinates.longitude },
-        selectedPlaces, // Use the selected places instead of all places
-        interests
+        selectedPlaces,
+        interests,
+        nearbyPlaces || []
       );
-      
-      completeStep(1, progressTimer);
-      
-      // Step 3: Create personalized tour
+
+      // Mark all 3 steps complete
+      setCompletedSteps([0, 1, 2]);
       setCurrentStep(2);
-      progressTimer = startStepProgress(2);
       
-      await new Promise(resolve => setTimeout(resolve, 20000));
-      
-      completeStep(2, progressTimer);
-      
-      // Step 4: Finalize
-      setCurrentStep(3);
-      progressTimer = startStepProgress(3);
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      completeStep(3, progressTimer);
-      
-      // Navigate to tour page with the generated data
-      setTimeout(() => {
-        navigate('/tour', {
-          state: {
-            tourId: tourData.tourId,
-            tourData: tourData,
-            location: geocodeData.formattedAddress
-          }
-        });
-      }, 500);
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Stop timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // Navigate to tour page
+      navigate('/tour', {
+        state: {
+          tourId: tourData.tourId,
+          tourData: tourData,
+          location: geocodeData.formattedAddress,
+          researchTime: elapsedTime
+        }
+      });
+
     } catch (err) {
-      console.error('Tour generation error:', err);
+      console.error('Perplexity tour generation error:', err);
+      
+      if (timerRef.current) clearInterval(timerRef.current);
+      
       setError(err instanceof Error ? err.message : 'Failed to generate tour');
     }
-  };
-
-  const startStepProgress = (stepIndex: number): NodeJS.Timeout => {
-    const step = steps[stepIndex];
-    const progressIncrement = 100 / (step.duration / 50);
-    
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        const newProgress = prev + progressIncrement;
-        return newProgress >= 100 ? 100 : newProgress;
-      });
-    }, 50);
-    
-    return timer;
-  };
-
-  const completeStep = (stepIndex: number, progressTimer: NodeJS.Timeout) => {
-    clearInterval(progressTimer);
-    setProgress(100);
-    setCompletedSteps(prev => [...prev, stepIndex]);
-    
-    setTimeout(() => {
-      setProgress(0);
-    }, 200);
   };
 
   const getStepState = (stepIndex: number) => {
@@ -157,9 +169,9 @@ const GeneratingTour: React.FC = () => {
     switch (state) {
       case 'completed':
         return {
-          border: '2px solid var(--border-color)',
-          opacity: 0.5,
-          boxShadow: '0 8px 32px transparent'
+          border: '2px solid var(--success-color)',
+          opacity: 0.7,
+          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.1)'
         };
       case 'active':
         return {
@@ -167,11 +179,11 @@ const GeneratingTour: React.FC = () => {
           opacity: 1,
           boxShadow: '0 8px 32px rgba(99, 102, 241, 0.2)'
         };
-      default: // upcoming
+      default:
         return {
           border: '2px solid var(--border-color)',
-          opacity: 0.6,
-          boxShadow: '0 8px 32px transparent'
+          opacity: 0.5,
+          boxShadow: 'none'
         };
     }
   };
@@ -182,8 +194,8 @@ const GeneratingTour: React.FC = () => {
     switch (state) {
       case 'completed':
         return {
-          backgroundColor: 'var(--border-color)',
-          color: 'var(--text-secondary)'
+          backgroundColor: 'var(--success-color)',
+          color: 'white'
         };
       case 'active':
         return {
@@ -191,7 +203,7 @@ const GeneratingTour: React.FC = () => {
           color: 'white',
           boxShadow: '0 8px 32px rgba(99, 102, 241, 0.4)'
         };
-      default: // upcoming
+      default:
         return {
           backgroundColor: 'var(--border-color)',
           color: 'var(--text-secondary)'
@@ -205,12 +217,14 @@ const GeneratingTour: React.FC = () => {
         <div className="container flex-center" style={{ height: '100vh', padding: '40px 20px' }}>
           <div className="text-center" style={{ maxWidth: '400px' }}>
             <AlertCircle size={48} color="var(--error-color)" style={{ marginBottom: '16px' }} />
-            <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Generation Failed</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Research Failed</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>{error}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+              Please try again. If the issue persists, try a different location.
+            </p>
             <button 
               className="btn btn-primary" 
               onClick={() => navigate('/')}
-              style={{ marginTop: '24px' }}
             >
               Return Home
             </button>
@@ -222,29 +236,53 @@ const GeneratingTour: React.FC = () => {
 
   return (
     <div className="app">
-      <div className="container flex-center" style={{ height: '100vh', padding: '40px 20px' }}>
-        <div
-          className="text-center"
-          style={{ width: '100%', maxWidth: '480px' }}
-        >
-          {/* Main Title */}
-          <div style={{ marginBottom: '40px' }}>
-            <h2 style={{ 
-              fontSize: '32px', 
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: '0 0 8px 0'
+      <div className="container flex-center" style={{ minHeight: '100vh', padding: '40px 20px' }}>
+        <div className="text-center" style={{ width: '100%', maxWidth: '520px' }}>
+          
+          {/* Header with Timer */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+              <Sparkles size={28} color="var(--primary-color)" />
+              <h2 style={{ 
+                fontSize: '28px', 
+                fontWeight: '700',
+                color: 'var(--text-primary)',
+                margin: 0
+              }}>
+                Researching History
+              </h2>
+            </div>
+            <p style={{ 
+              fontSize: '16px',
+              color: 'var(--text-secondary)',
+              margin: '0 0 16px 0'
             }}>
-              Generating
-            </h2>
-            <h2 style={{ 
-              fontSize: '32px', 
-              fontWeight: '700',
-              color: 'var(--primary-color)',
-              margin: 0
+              Creating your comprehensive historical tour
+            </p>
+            
+            {/* Elapsed Time */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'var(--card-background)',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              border: '1px solid var(--border-color)'
             }}>
-              Your Tour...
-            </h2>
+              <Clock size={16} color="var(--primary-color)" />
+              <span style={{ 
+                fontSize: '16px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                fontFamily: 'monospace'
+              }}>
+                {formatTime(elapsedTime)}
+              </span>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                elapsed
+              </span>
+            </div>
           </div>
 
           {/* Steps List */}
@@ -257,98 +295,93 @@ const GeneratingTour: React.FC = () => {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px'
+              gap: '12px'
             }}>
               {steps.map((step, index) => (
-                <div
+                <motion.div
                   key={step.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
                   style={{
                     backgroundColor: 'var(--card-background)',
-                    borderRadius: '16px',
-                    padding: '20px',
+                    borderRadius: '12px',
+                    padding: '16px',
                     textAlign: 'left',
-                    minHeight: '120px',
                     display: 'flex',
                     alignItems: 'center',
-                    // Apply state-specific styles based on step state
+                    gap: '14px',
+                    transition: 'all 0.3s ease',
                     ...getStepStyles(index)
                   }}
                 >
+                  {/* Step Icon */}
                   <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    ...getIconStyles(index),
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '16px',
-                    width: '100%'
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.3s ease'
                   }}>
-                    {/* Step Icon */}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      ...getIconStyles(index),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      {completedSteps.includes(index) ? <Check size={24} /> : step.icon}
-                    </div>
-
-                    {/* Step Content */}
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{
-                        fontSize: '18px',
-                        fontWeight: '600',
-                        color: 'var(--text-primary)',
-                        margin: '0 0 4px 0'
-                      }}>
-                        {step.title}
-                      </h3>
-                      <p style={{
-                        fontSize: '14px',
-                        color: 'var(--text-secondary)',
-                        margin: '0 0 12px 0',
-                        lineHeight: '1.4'
-                      }}>
-                        {step.description}
-                      </p>
-
-                      {/* Progress Bar Container (always present for consistent sizing) */}
-                      <div style={{
-                        width: '100%',
-                        height: '4px',
-                        backgroundColor: getStepState(index) === 'active' ? 'var(--border-color)' : 'transparent',
-                        borderRadius: '2px',
-                        overflow: 'hidden'
-                      }}>
-                        {getStepState(index) === 'active' && (
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
-                            transition={{ duration: 0.1 }}
-                            style={{
-                              height: '100%',
-                              backgroundColor: 'var(--primary-color)',
-                              borderRadius: '2px'
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
+                    {completedSteps.includes(index) ? <Check size={20} /> : step.icon}
                   </div>
-                </div>
+
+                  {/* Step Content */}
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)',
+                      margin: '0 0 2px 0'
+                    }}>
+                      {step.title}
+                    </h3>
+                    <p style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      {step.description}
+                    </p>
+                  </div>
+
+                  {/* Active indicator */}
+                  {getStepState(index) === 'active' && (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-color)'
+                      }}
+                    />
+                  )}
+                </motion.div>
               ))}
             </div>
           </motion.div>
 
           {/* Footer Message */}
-          <p style={{ 
-            fontSize: '14px',
-            color: 'var(--text-secondary)',
-            margin: 0
+          <div style={{ 
+            backgroundColor: 'rgba(99, 102, 241, 0.05)',
+            borderRadius: '8px',
+            padding: '12px 16px'
           }}>
-            You can safely close or leave this page.
-          </p>
+            <p style={{ 
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              margin: 0
+            }}>
+              💡 Usually takes <strong>30-60 seconds</strong> to research and write your tour.
+            </p>
+          </div>
         </div>
       </div>
     </div>
