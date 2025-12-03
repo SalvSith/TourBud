@@ -753,8 +753,7 @@ const LocationConfirm: React.FC = () => {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.15 }}
               style={{
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--border-color)'
+                padding: '16px 20px'
               }}
             >
               <div style={{
@@ -907,27 +906,39 @@ const LocationConfirm: React.FC = () => {
                 ))
               ) : location.length > 0 && !isLoadingSuggestions ? (
                 <div style={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   padding: '40px 20px',
                   textAlign: 'center',
                   color: 'var(--text-secondary)'
                 }}>
-                  <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
-                  <div style={{ fontSize: '15px' }}>
-                    {location.length < 2 ? 'Type at least 2 characters to search' : 'No suggestions found'}
+                  <div>
+                    <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
+                    <div style={{ fontSize: '15px' }}>
+                      {location.length < 2 ? 'Type at least 2 characters to search' : 'No suggestions found'}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div style={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   padding: '40px 20px',
                   textAlign: 'center',
                   color: 'var(--text-secondary)'
                 }}>
-                  <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
-                  <div style={{ fontSize: '15px', marginBottom: '8px' }}>
-                    Start typing to search for a location
-                  </div>
-                  <div style={{ fontSize: '13px', opacity: 0.8 }}>
-                    Streets, neighborhoods, landmarks, cities...
+                  <div>
+                    <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
+                    <div style={{ fontSize: '15px', marginBottom: '8px' }}>
+                      Start typing to search for a location
+                    </div>
+                    <div style={{ fontSize: '13px', opacity: 0.8 }}>
+                      Streets, neighborhoods, landmarks, cities...
+                    </div>
                   </div>
                 </div>
               )}
