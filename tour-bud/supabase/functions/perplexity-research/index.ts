@@ -348,9 +348,29 @@ ${nearbyList}`;
     const tourId = `tour_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const wordCount = combinedNarration.split(/\s+/).length;
     const estimatedDuration = Math.round(wordCount / 150);
-    const formattedInterests = interests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(' & ');
+    
+    // Format interests with proper title case
+    const formatInterest = (interest: string) => {
+      return interest.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    };
+    const formattedInterests = interests.map(formatInterest).join(' & ');
 
-    const title = `${streetName} Uncovered`;
+    // Random creative title templates
+    const titleTemplates = [
+      `${streetName} Uncovered`,
+      `Discovering ${streetName}`,
+      `The Story of ${streetName}`,
+      `${streetName}: A Journey`,
+      `Walking ${streetName}`,
+      `${streetName} Revealed`,
+      `Secrets of ${streetName}`,
+      `${streetName}: Past & Present`,
+      `Exploring ${streetName}`,
+      `${streetName} Chronicles`
+    ];
+    const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)];
     const description = `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}.`;
     
     console.log(`📝 Tour generated: ${wordCount} words, ${estimatedDuration} min, ${allCitations.length} sources`);
