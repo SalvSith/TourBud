@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, MapPin, Clock, Play } from 'lucide-react';
+import { ChevronRight, MapPin, Play, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
 import { Tour } from '../types';
 
 interface PastTour extends Tour {
-  description: string;
+  address: string;
   distance: string;
   plays: number;
 }
@@ -19,11 +19,11 @@ const PastTours: React.FC = () => {
     { 
       id: '1', 
       title: 'Historical Downtown Walk', 
-      description: 'Explored the city\'s founding stories and colonial architecture',
+      address: '45 Smith Street, Downtown',
       location: '45 Smith Street',
       distance: '0.8 mi',
       duration: 45,
-      plays: 1,
+      plays: 1247,
       content: '',
       createdAt: new Date('2024-01-15'),
       completedAt: new Date('2024-01-15')
@@ -31,11 +31,11 @@ const PastTours: React.FC = () => {
     { 
       id: '2', 
       title: 'Art Gallery District Tour', 
-      description: 'Discovered local artists and contemporary works in creative spaces',
+      address: '42 Main Street, Arts District',
       location: '42 Main Street',
       distance: '1.2 mi',
       duration: 60,
-      plays: 1,
+      plays: 892,
       content: '',
       createdAt: new Date('2024-01-10'),
       completedAt: new Date('2024-01-10')
@@ -43,11 +43,11 @@ const PastTours: React.FC = () => {
     { 
       id: '3', 
       title: 'Local Food Experience', 
-      description: 'Tasted authentic flavors and culinary traditions of the area',
+      address: '18 Park Avenue, Old Town',
       location: '18 Park Avenue',
       distance: '0.5 mi',
       duration: 75,
-      plays: 1,
+      plays: 634,
       content: '',
       createdAt: new Date('2024-01-05'),
       completedAt: new Date('2024-01-05')
@@ -55,11 +55,11 @@ const PastTours: React.FC = () => {
     { 
       id: '4', 
       title: 'Waterfront Exploration', 
-      description: 'Scenic walk along the harbor with maritime history',
+      address: '101 Harbor Drive, Waterfront',
       location: '101 Harbor Drive',
       distance: '1.8 mi',
       duration: 90,
-      plays: 1,
+      plays: 478,
       content: '',
       createdAt: new Date('2024-01-01'),
       completedAt: new Date('2024-01-01')
@@ -107,7 +107,7 @@ const PastTours: React.FC = () => {
                 marginBottom: '12px',
                 lineHeight: '1.4'
               }}>
-                {tour.description}
+                {tour.address}
               </p>
               
               <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)' }}>
@@ -116,23 +116,16 @@ const PastTours: React.FC = () => {
                   <span style={{ fontSize: '14px' }}>{tour.distance}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  <Clock size={16} />
-                  <span style={{ fontSize: '14px' }}>{tour.duration} min</span>
-                </div>
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <Play size={16} />
                   <span style={{ fontSize: '14px' }}>{tour.plays.toLocaleString()}</span>
                 </div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <Calendar size={16} />
+                  <span style={{ fontSize: '14px' }}>
+                    {tour.createdAt?.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/')}
+                  </span>
+                </div>
               </div>
-              
-              <p style={{ 
-                fontSize: '12px', 
-                color: 'var(--text-light)',
-                marginTop: '8px',
-                marginBottom: 0
-              }}>
-                Created {tour.createdAt?.toLocaleDateString()}
-              </p>
             </motion.div>
           ))}
         </motion.div>
