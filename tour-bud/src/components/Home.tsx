@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Clock, CreditCard, MoreHorizontal, ChevronDown, MapPin, Camera, Sparkles, LogOut, User, Settings, UserCog } from 'lucide-react';
+import { Play, Clock, CreditCard, MoreHorizontal, ChevronDown, MapPin, Camera, Sparkles, LogOut, User, Settings, UserCog, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 
@@ -12,10 +12,11 @@ interface HomeProps {
 interface NearbyTour {
   id: number;
   title: string;
-  description: string;
+  address: string;
   distance: string;
   duration: number;
   plays: number;
+  date: Date;
 }
 
 const Home: React.FC<HomeProps> = ({ userName, credits }) => {
@@ -53,23 +54,23 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   ];
 
   const [nearbyTours, setNearbyTours] = useState<NearbyTour[]>([
-    { id: 1, title: 'Historical Downtown Walk', description: 'Explore the city\'s founding stories and colonial architecture', distance: '0.3 mi', duration: 60, plays: 1247 },
-    { id: 2, title: 'Art Gallery District Tour', description: 'Discover local artists and contemporary works in creative spaces', distance: '0.5 mi', duration: 45, plays: 892 },
-    { id: 3, title: 'Local Food Experience', description: 'Taste authentic flavors and culinary traditions of the area', distance: '0.7 mi', duration: 75, plays: 634 },
-    { id: 4, title: 'Waterfront Exploration', description: 'Scenic walk along the harbor with maritime history', distance: '1.1 mi', duration: 90, plays: 478 }
+    { id: 1, title: 'Historical Downtown Walk', address: '45 Main Street, Downtown', distance: '0.3 mi', duration: 60, plays: 1247, date: new Date('2024-11-15') },
+    { id: 2, title: 'Art Gallery District Tour', address: '123 Gallery Avenue, Arts District', distance: '0.5 mi', duration: 45, plays: 892, date: new Date('2024-11-20') },
+    { id: 3, title: 'Local Food Experience', address: '789 Market Street, Old Town', distance: '0.7 mi', duration: 75, plays: 634, date: new Date('2024-11-25') },
+    { id: 4, title: 'Waterfront Exploration', address: '321 Harbor Drive, Waterfront', distance: '1.1 mi', duration: 90, plays: 478, date: new Date('2024-11-28') }
   ]);
 
   const [loading, setLoading] = useState<boolean>(false);
 
   const additionalTours: NearbyTour[] = [
-    { id: 5, title: 'Victorian Architecture Tour', description: 'Marvel at stunning 19th-century buildings and their intricate details', distance: '0.8 mi', duration: 85, plays: 756 },
-    { id: 6, title: 'Hidden Speakeasy Stories', description: 'Uncover the secrets of prohibition-era underground bars', distance: '0.6 mi', duration: 55, plays: 923 },
-    { id: 7, title: 'Street Art & Murals', description: 'Discover vibrant urban art and the stories behind the walls', distance: '1.0 mi', duration: 70, plays: 412 },
-    { id: 8, title: 'Maritime Heritage Walk', description: 'Explore the port city\'s rich seafaring history and traditions', distance: '1.3 mi', duration: 95, plays: 587 },
-    { id: 9, title: 'Literary Landmarks', description: 'Visit locations that inspired famous authors and their works', distance: '0.9 mi', duration: 80, plays: 334 },
-    { id: 10, title: 'Market District Tour', description: 'Experience the bustling energy of local vendors and fresh produce', distance: '0.4 mi', duration: 50, plays: 789 },
-    { id: 11, title: 'Ghost Stories & Legends', description: 'Spine-tingling tales from the city\'s most haunted locations', distance: '1.2 mi', duration: 75, plays: 456 },
-    { id: 12, title: 'Craft Beer Trail', description: 'Sample local brews while learning about brewing traditions', distance: '1.5 mi', duration: 120, plays: 672 }
+    { id: 5, title: 'Victorian Architecture Tour', address: '567 Heritage Lane, Historic District', distance: '0.8 mi', duration: 85, plays: 756, date: new Date('2024-11-30') },
+    { id: 6, title: 'Hidden Speakeasy Stories', address: '234 Underground Street, Downtown', distance: '0.6 mi', duration: 55, plays: 923, date: new Date('2024-12-02') },
+    { id: 7, title: 'Street Art & Murals', address: '890 Creative Avenue, Arts Quarter', distance: '1.0 mi', duration: 70, plays: 412, date: new Date('2024-12-05') },
+    { id: 8, title: 'Maritime Heritage Walk', address: '456 Port Road, Harbor District', distance: '1.3 mi', duration: 95, plays: 587, date: new Date('2024-12-08') },
+    { id: 9, title: 'Literary Landmarks', address: '101 Writers Way, University Area', distance: '0.9 mi', duration: 80, plays: 334, date: new Date('2024-12-10') },
+    { id: 10, title: 'Market District Tour', address: '678 Commerce Street, Market Square', distance: '0.4 mi', duration: 50, plays: 789, date: new Date('2024-12-12') },
+    { id: 11, title: 'Ghost Stories & Legends', address: '987 Shadow Lane, Old Quarter', distance: '1.2 mi', duration: 75, plays: 456, date: new Date('2024-12-15') },
+    { id: 12, title: 'Craft Beer Trail', address: '345 Brewery Road, Industrial Zone', distance: '1.5 mi', duration: 120, plays: 672, date: new Date('2024-12-18') }
   ];
 
   const loadMoreTours = useCallback(() => {
@@ -602,7 +603,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
                     marginBottom: '12px',
                     lineHeight: '1.4'
                   }}>
-                    {tour.description}
+                    {tour.address}
                   </p>
                   
                   <div style={{ display: 'flex', gap: '16px', color: 'var(--text-secondary)' }}>
@@ -611,12 +612,14 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
                       <span style={{ fontSize: '14px' }}>{tour.distance}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <Clock size={16} />
-                      <span style={{ fontSize: '14px' }}>{tour.duration} min</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                       <Play size={16} />
                       <span style={{ fontSize: '14px' }}>{tour.plays.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <Calendar size={16} />
+                      <span style={{ fontSize: '14px' }}>
+                        {tour.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/')}
+                      </span>
                     </div>
                   </div>
                 </motion.div>
