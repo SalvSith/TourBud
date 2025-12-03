@@ -132,8 +132,24 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   return (
     <div className="app">
       <div className="header">
-        {/* Left side: Credits and TB Logo */}
+        {/* Left side: TB Logo and Credits */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            backgroundColor: 'var(--primary-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            fontWeight: '700',
+            color: 'white',
+            flexShrink: 0
+          }}>
+            TB
+          </div>
+
           <div 
             onClick={() => navigate('/buy-credits')}
             style={{
@@ -164,22 +180,6 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
               <span style={{ fontSize: '10px', color: 'white' }}>💎</span>
             </div>
             {credits}
-          </div>
-
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            backgroundColor: 'var(--primary-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            fontWeight: '700',
-            color: 'white',
-            flexShrink: 0
-          }}>
-            TB
           </div>
         </div>
 
