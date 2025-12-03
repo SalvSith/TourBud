@@ -341,7 +341,7 @@ Your personalized tour will include fascinating historical stories, architectura
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h3 className="header-title">
-          {shortLocation}
+          Your Tour
         </h3>
         <ThemeToggle />
       </div>
