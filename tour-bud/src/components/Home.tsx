@@ -132,7 +132,59 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   return (
     <div className="app">
       <div className="header">
+        {/* TB Logo on the left */}
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '8px',
+          backgroundColor: 'var(--primary-color)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '16px',
+          fontWeight: '700',
+          color: 'white',
+          flexShrink: 0
+        }}>
+          TB
+        </div>
+
+        <div className="header-title"></div> {/* Empty title to maintain spacing */}
+
+        {/* Right side: Credits, Profile, Theme Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div 
+            onClick={() => navigate('/buy-credits')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'var(--secondary-color)',
+              padding: '8px 12px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+            className="credits-badge-hover"
+          >
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '10px', color: 'white' }}>💎</span>
+            </div>
+            {credits}
+          </div>
+
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <div 
               onClick={toggleDropdown}
@@ -145,7 +197,8 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
                 backgroundSize: 'cover',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                border: isDropdownOpen ? '2px solid var(--primary-color)' : '2px solid transparent'
+                border: isDropdownOpen ? '2px solid var(--primary-color)' : '2px solid transparent',
+                flexShrink: 0
               }}
             />
             
@@ -159,7 +212,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
                 style={{
                   position: 'absolute',
                   top: '45px',
-                  left: '0',
+                  right: '0',
                   minWidth: '200px',
                   backgroundColor: 'var(--card-background)',
                   border: '1px solid var(--border-color)',
@@ -271,42 +324,8 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
               </motion.div>
             )}
           </div>
-          <div 
-            onClick={() => navigate('/buy-credits')}
-            style={{
-              background: 'var(--card-background)',
-              borderRadius: '25px',
-              padding: '6px 12px',
-              boxShadow: 'var(--shadow-sm)',
-              border: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              height: '36px'
-            }}
-            className="credits-badge-hover"
-          >
-            <div style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary-color) 0%, #8B5CF6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{ fontSize: '10px', color: 'white' }}>💎</span>
-            </div>
-            {credits}
-          </div>
+          <ThemeToggle />
         </div>
-        <div className="header-title"></div> {/* Empty title to maintain spacing */}
-        <ThemeToggle />
       </div>
 
       <div className="container">
