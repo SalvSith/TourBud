@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, MapPin, Clock, ExternalLink, BookOpen } from 'lucide-react';
+import { Play, Pause, MapPin, ExternalLink, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
@@ -244,6 +244,36 @@ const Tour: React.FC = () => {
 
   const currentLocation = tourLocation || '45 Smith Street, New York, NY';
 
+  // Shorten location by removing country, state/sub-area, and zip code
+  const shortenLocation = (location: string): string => {
+    if (!location) return '';
+    
+    // Split by comma and take only the first 1-2 parts (street + city)
+    const parts = location.split(',').map(p => p.trim());
+    
+    if (parts.length <= 2) {
+      // Already short, just return first part or both
+      return parts[0];
+    }
+    
+    // Take first two parts (usually street and city/neighborhood)
+    // Remove any zip codes from the second part
+    const firstPart = parts[0];
+    let secondPart = parts[1];
+    
+    // Remove zip codes (5 digits or 5+4 format)
+    secondPart = secondPart.replace(/\s*\d{5}(-\d{4})?\s*/, '').trim();
+    
+    // If second part is just a state abbreviation or empty, skip it
+    if (secondPart.length <= 3) {
+      return firstPart;
+    }
+    
+    return `${firstPart}, ${secondPart}`;
+  };
+
+  const shortLocation = shortenLocation(currentLocation);
+
   // Function to fetch map URL from server
   const fetchMapUrl = async (address: string) => {
     try {
@@ -311,7 +341,7 @@ Your personalized tour will include fascinating historical stories, architectura
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h3 className="header-title">
-          {currentLocation}
+          {shortLocation}
         </h3>
         <ThemeToggle />
       </div>
@@ -421,10 +451,6 @@ Your personalized tour will include fascinating historical stories, architectura
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <MapPin size={16} />
               <span style={{ fontSize: '14px' }}>{tourInfo.distance}</span>
-            </div>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-              <Clock size={16} />
-              <span style={{ fontSize: '14px' }}>{tourInfo.duration} min</span>
             </div>
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <Play size={16} />
