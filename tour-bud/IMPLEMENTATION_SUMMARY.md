@@ -3,70 +3,78 @@
 ## ✅ What's Been Implemented
 
 ### 🏗️ Backend Architecture
-- **6 Supabase Edge Functions** ready for deployment:
+- **6 Supabase Edge Functions** deployed:
   - `geocode` - GPS to street address conversion
-  - `get-places` - Street POI discovery
-  - `generate-tour` - **Enhanced AI tour narration with web search**
-  - `get-tour` - Tour retrieval
+  - `get-places` - POI discovery within 1km
   - `get-map-url` - Map image generation
   - `places-autocomplete` - Address search suggestions
+  - `get-ip-location` - IP-based geolocation fallback
+  - `perplexity-research` - **Primary tour generation with 5-query parallel research**
 
-### 🔍 **NEW: Advanced Web Search Integration**
-- **OpenAI Search Models**: Using `gpt-4o-search-preview` for real-time web research
-- **3-Prompt Architecture**: Breaking tour generation into specialized research phases
-- **Location-Aware Search**: Geographically relevant results based on user location
-- **Cited Sources**: Real-time web data with proper attribution and URLs
+### 🔍 **Perplexity Research Integration**
+- **Perplexity Sonar-Pro API**: Fast, comprehensive web research
+- **5-Query Parallel Architecture**: Multiple focused searches run simultaneously
+- **Location-Aware Search**: Geographically relevant results
+- **Cited Sources**: Real-time web data with URL citations
 
 ### 🎯 API Integration
 - **Google Maps APIs**:
-  - Geocoding API for GPS → address conversion
-  - Places API for POI discovery
+  - Geocoding API for GPS ↔ address conversion
+  - Places API for POI discovery (1km radius)
   - Static Maps API for visual previews
-- **OpenAI GPT-4 Integration**:
-  - **Web search-powered prompts** for current information
-  - **Historical research** with real-time fact-checking
-  - **Cultural context** from current web sources
-  - User interest personalization with verified data
+- **Perplexity Sonar-Pro Integration**:
+  - **5 parallel web searches** for comprehensive research
+  - **Real-time fact-checking** with web sources
+  - **Cultural and historical context** from current data
+  - User interest personalization (subtle influence)
 
 ### 💻 Frontend Integration
 - **Service Layer**: Complete API client (`tourService.ts`)
-- **Enhanced Loading Experience**: 6-step progress with web research visualization
+- **Fast Loading Experience**: 3-stage progress (30-90 seconds)
 - **Component Updates**:
-  - `GeneratingTour` - Shows web research progress
-  - `LocationConfirm` - Enhanced address autocomplete
-  - `InterestSelect` - Feeds into web-researched tours
-  - `Tour` - Displays research-backed content
+  - `GeneratingTour` - Shows 3-stage progress with timer
+  - `LocationConfirm` - Address autocomplete with map preview
+  - `InterestSelect` - User interests (subtle influence)
+  - `PlaceSelection` - Optional place selection
+  - `Tour` - Displays tour with clickable citations
 
 ### 🔧 Configuration
 - **Supabase Config**: Centralized settings (`src/config/supabase.ts`)
 - **Environment Variables**: API key management
 - **CORS Support**: Cross-origin request handling
 
-## 🚀 **NEW: 3-Prompt Web Search Architecture**
+## 🚀 **5-Query Parallel Research Architecture**
 
-### **Revolutionary Tour Generation Process:**
+### **Fast Tour Generation Process:**
 
-1. **📚 Historical Research Prompt**
-   - Web searches for street origins, naming history, development timeline
-   - Finds notable historical events, figures, and architectural periods
-   - Gathers verified historical facts with dates and sources
+1. **🎯 Interests × Area Query**
+   - User's interests applied to the location
+   - "history art culture in St Andrews, Glasgow"
    
-2. **🏙️ Current Culture Research Prompt** 
-   - Researches current businesses, reviews, and cultural significance
-   - Finds recent developments, community events, food culture
-   - Discovers art, music, and cultural movements connected to the street
+2. **⭐ Selected Places Query** (if any)
+   - Deep dive on user-selected places
+   - History, establishment dates, significance
    
-3. **🎭 Tour Narrative Creation Prompt**
-   - Weaves historical and current research into engaging walking tour
-   - Creates step-by-step walking directions with specific addresses
-   - Connects user interests to factual, researched content
+3. **🏛️ Area General Query**
+   - General neighborhood history
+   - When established, development, character
+   
+4. **🗺️ Street Specific Query**
+   - Street name origin, notable buildings
+   - Historical events on the street
+   
+5. **💎 Notable Places Query**
+   - Highly-reviewed places nearby (100+ reviews)
+   - Research popular landmarks
 
-### **Benefits of Web Search Integration:**
-- ✅ **Factually Accurate**: Real-time verification of historical claims
-- ✅ **Current Information**: Up-to-date business hours, reviews, events
-- ✅ **Rich Context**: Deep historical and cultural background
-- ✅ **Cited Sources**: URLs and references for tour content
-- ✅ **Location-Specific**: Geographically relevant search results
+**All 5 queries run in parallel** → Combined into comprehensive narrative
+
+### **Benefits of Perplexity Integration:**
+- ✅ **Fast**: 30-90 seconds total generation time
+- ✅ **Factually Accurate**: Real-time web verification
+- ✅ **Comprehensive**: 5 focused research angles
+- ✅ **Cited Sources**: URLs and references included
+- ✅ **Cost-Effective**: ~$0.50-1 per tour
 
 ## 🏃‍♂️ Quick Start (5 Minutes)
 
@@ -78,8 +86,8 @@
 ```
 
 ### 2. Get API Keys
-- **Google Maps**: Enable Geocoding + Places APIs + Static Maps API
-- **OpenAI**: Get API key with **GPT-4o Search Preview** access
+- **Google Maps**: Enable Geocoding + Places + Static Maps APIs
+- **Perplexity**: Get API key from perplexity.ai
 
 ### 3. Deploy Functions
 ```bash
@@ -89,12 +97,14 @@ supabase link --project-ref YOUR_PROJECT_ID
 
 # Set environment variables in Supabase dashboard:
 # GOOGLE_MAPS_API_KEY=your_key
-# OPENAI_API_KEY=your_key
+# PERPLEXITY_API_KEY=your_key
 
 supabase functions deploy geocode
-supabase functions deploy get-places  
-supabase functions deploy generate-tour
-supabase functions deploy get-tour
+supabase functions deploy get-places
+supabase functions deploy get-map-url
+supabase functions deploy places-autocomplete
+supabase functions deploy get-ip-location
+supabase functions deploy perplexity-research
 ```
 
 ### 4. Update Frontend Config
@@ -117,89 +127,88 @@ npm start
 # Watch the magic happen! 🎉
 ```
 
-## 🔄 Enhanced Tour Generation Flow
+## 🔄 Tour Generation Flow
 
 1. **User starts tour** → `LocationConfirm` captures GPS with autocomplete
-2. **GPS sent to backend** → `geocode` function converts to street info  
-3. **Places discovered** → `get-places` finds POIs on that street
-4. **🔍 Historical research** → Web search for street history and development
-5. **🔍 Cultural research** → Web search for current businesses and culture
-6. **🎭 Tour creation** → AI weaves research into engaging walking tour
-7. **Tour displayed** → Rich, factual content with citations in `Tour` component
+2. **GPS sent to backend** → `geocode` converts to street info
+3. **Places discovered** → `get-places` finds POIs within 1km
+4. **User selects places** → `PlaceSelection` (optional)
+5. **🔍 Parallel research** → 5 queries run simultaneously via Perplexity
+6. **🎭 Tour creation** → Results combined into comprehensive narrative
+7. **Tour displayed** → Content with clickable citations in `Tour` component
 
 ## 📋 What You Need to Provide
 
 ### Required API Keys
-- **Google Maps API Key** (with Geocoding + Places + Static Maps APIs enabled)
-- **OpenAI API Key** (with **GPT-4o Search Preview** access)
+- **Google Maps API Key** (Geocoding + Places + Static Maps APIs)
+- **Perplexity API Key** (from perplexity.ai)
 
 ### Required Setup
 - Supabase project (free tier works!)
-- Replace placeholder values in `src/config/supabase.ts`
+- Update values in `src/config/supabase.ts`
+- Set environment variables in Supabase dashboard
 
 ## 🎯 Testing Locations
 
-Try these locations for best results with web search:
-- **New York Broadway (Financial District)**: Rich historical web sources
-- **London Baker Street**: Well-documented history and culture
-- **Paris Champs-Élysées**: Extensive cultural and historical content
-- **Rome Via del Corso**: Ancient and modern sources available
-- **Any historic main street in major cities**
+Try these locations for best results:
+- **London Baker Street**: Well-documented history
+- **New York Broadway**: Rich historical sources
+- **Paris Champs-Élysées**: Extensive cultural content
+- **Rome Via del Corso**: Ancient and modern history
+- **Any historic street in major cities**
 
 ## 💡 Advanced Features
 
-### **Web Search Customization**
-The new system allows for:
-- **Location-aware searches**: Results tailored to specific countries/cities
-- **Interest-focused research**: Historical vs cultural vs architectural emphasis
+### **5-Query Research System**
+The parallel query system allows for:
+- **Location-aware searches**: Results tailored to specific locations
+- **Interest-focused research**: Subtle influence on content
 - **Source verification**: Multiple web sources for accuracy
-- **Real-time updates**: Current business information and events
+- **Real-time updates**: Current information from the web
 
 ### **Multi-language Support**
-Easy to extend by modifying the web search prompts for different languages and regions.
+Easy to extend by modifying Perplexity prompts for different languages.
 
 ### **Specialized Tour Types**
-The 3-prompt system can be customized for:
-- **Historical deep-dives**: Extended historical research
-- **Food & culture tours**: Restaurant history & local cuisine research
-- **Architecture walks**: Building research and architectural movements
-- **Ghost tours**: Mysterious history with verified folklore
+The 5-query system can be customized for:
+- **Historical deep-dives**: Focus on historical queries
+- **Food & culture tours**: Emphasize culinary history
+- **Architecture walks**: Building-focused research
+- **Ghost tours**: Mysterious history and folklore
 
-## 🚨 **Important: Web Search Model Access**
+## 🚨 **Important: Perplexity API Access**
 
-The enhanced tour generation requires access to OpenAI's search models:
-- `gpt-4o-search-preview` 
-- `gpt-4o-mini-search-preview`
+The tour generation requires:
+- **Perplexity API key** from perplexity.ai
+- **Sonar-Pro model** access (standard tier)
 
-These models may have:
-- **Limited availability** to certain API tiers
-- **Higher costs** due to web search capabilities  
-- **Rate limits** for search functionality
-
-If you don't have access to search models, the system will fall back to standard GPT-4 models without web search (using the previous implementation).
+Considerations:
+- **Reasonable costs**: ~$0.50-1 per tour
+- **Rate limits**: Generous but monitor usage
+- **Fast generation**: 30-90 seconds per tour
 
 ## 🐛 Troubleshooting
 
-### Web Search Issues
-1. **"Search model not available"**: Check OpenAI account tier and model access
-2. **Limited search results**: Verify location data is accurate for geographic relevance
-3. **Slow generation**: Web search adds processing time (60+ seconds total)
+### Perplexity Issues
+1. **"Research Failed"**: Check Perplexity API key in Supabase
+2. **Limited sources**: Some locations have less web information
+3. **Slow generation**: Network issues or API slowdown (retry)
 
 ### Standard Issues
-1. **"Generation Failed"**: Check API keys in Supabase environment
-2. **CORS errors**: Verify Supabase configuration
-3. **No places found**: Check Google Places API quotas
+1. **"Generation Failed"**: Verify all API keys in Supabase
+2. **CORS errors**: Check Supabase configuration
+3. **No places found**: Verify Google Places API quotas
 
-## 🎉 Revolutionary Upgrade Complete!
+## 🎉 Perplexity Integration Complete!
 
-The TourBud system now generates **research-backed, factually accurate tours** using real-time web search. Instead of generic historical overviews, users get:
+The TourBud system generates **fast, research-backed tours** using Perplexity's real-time web search. Users get:
 
 - 📚 **Verified historical facts** from web sources
-- 🏙️ **Current business information** and cultural context  
-- 🗺️ **Street-specific stories** with proper citations
-- 🎭 **Engaging narratives** backed by real research
+- 🏙️ **Comprehensive research** in 30-90 seconds
+- 🗺️ **Street-specific stories** with citations
+- 🎭 **Engaging narratives** backed by 5 parallel queries
 
 **Total setup time**: ~15 minutes  
-**Result**: Professional-grade, research-backed tour generation system with web search capabilities
+**Result**: Fast, cost-effective tour generation with real-time web research
 
 See `DEPLOYMENT_GUIDE.md` for detailed deployment instructions. 

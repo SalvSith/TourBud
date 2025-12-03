@@ -70,6 +70,9 @@ body {
   background-color: var(--background);
   color: var(--text-primary);
   overflow-x: hidden;
+  /* Prevent flashing */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .app {
@@ -79,6 +82,11 @@ body {
   margin: 0 auto;
   background-color: var(--background);
   position: relative;
+  /* Prevent flashing on initial load */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* Mobile Status Bar Simulation */
@@ -244,6 +252,10 @@ body::-webkit-scrollbar {
   to {
     transform: rotate(360deg);
   }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 /* Chip/Tag Styles */
@@ -458,6 +470,49 @@ p {
 /* Disable transitions for Framer Motion elements during animation */
 .framer-motion-disable-transitions * {
   transition: none !important;
+}
+
+/* Smooth framer-motion animations */
+[style*="opacity"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+/* Prevent flash on animated cards */
+.animated-step-card {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: opacity, transform;
+  opacity: 0;
+}
+
+/* Force GPU acceleration for all motion components */
+div[style*="opacity: 0"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Prevent flash on initial render */
+@keyframes preventFlash {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Apply to elements that will be animated by framer-motion */
+.generating-tour-card-initial {
+  animation: preventFlash 0.01s;
+  animation-fill-mode: forwards;
 }
 
 .login-button-hover {

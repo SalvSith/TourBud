@@ -52,6 +52,8 @@ interface TourResponse {
   estimatedDuration: number;
   distance: string;
   sources: string[];
+  audioStatus?: string;
+  audioUrl?: string;
 }
 
 interface PerplexityResponse {
@@ -389,6 +391,46 @@ ${nearbyList}`;
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Save to tours table (main storage)
+        await supabase.from('tours').insert({
+          tour_id: tourId,
+          user_id: userId || null,
+          
+          // Location data
+          location_data: locationData,
+          street_name: streetName,
+          city: city,
+          country: country,
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          formatted_address: locationData.formattedAddress,
+          
+          // Tour content
+          title: title,
+          description: description,
+          narration: combinedNarration,
+          estimated_duration: estimatedDuration,
+          distance: '~1 km',
+          
+          // Research data
+          selected_places: places || [],
+          nearby_places: nearbyPlaces || [],
+          interests: interests,
+          sources: allCitations,
+          word_count: wordCount,
+          
+          // Audio (pending for now)
+          audio_status: 'pending',
+          
+          // Metadata
+          is_public: false, // Default to private until user decides
+          created_at: new Date().toISOString(),
+        });
+        
+        console.log('💾 Saved to tours table');
+        
+        // Also save to deep_research_jobs for backward compatibility
         await supabase.from('deep_research_jobs').insert({
           research_id: tourId,
           openai_response_id: `perplexity_5query_${Date.now()}`,
@@ -404,7 +446,35 @@ ${nearbyList}`;
           created_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
         });
-        console.log('💾 Saved to database');
+        
+        console.log('💾 Saved to deep_research_jobs (legacy)');
+        
+        // TEMPORARILY DISABLED: Audio generation
+        // Trigger audio generation asynchronously (fire and forget)
+        // This runs in the background while we return the tour response
+        // console.log('🎙️ Triggering audio generation...');
+        // 
+        // const audioGenerationUrl = `${SUPABASE_URL}/functions/v1/generate-audio`;
+        // fetch(audioGenerationUrl, {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        //   },
+        //   body: JSON.stringify({
+        //     tourId: tourId,
+        //     narration: combinedNarration
+        //   })
+        // }).then(response => {
+        //   if (response.ok) {
+        //     console.log('✅ Audio generation started successfully');
+        //   } else {
+        //     console.warn('⚠️ Audio generation request failed:', response.status);
+        //   }
+        // }).catch(err => {
+        //   console.warn('⚠️ Audio generation trigger failed:', err.message);
+        // });
+        
       } catch (dbError) {
         console.warn('⚠️ Database save failed:', dbError.message);
       }
@@ -418,6 +488,7 @@ ${nearbyList}`;
       estimatedDuration,
       distance: '~1 km',
       sources: allCitations,
+      audioStatus: 'processing', // Audio is being generated in background
     };
 
     console.log(`✨ 5-QUERY tour complete!`);

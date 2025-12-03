@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, MapPin, ExternalLink, BookOpen, Calendar } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Play, Pause, MapPin, ExternalLink, BookOpen, Calendar, VolumeX, SkipBack, SkipForward, Loader2, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
+import tourService from '../services/tourService';
 
 // Simple markdown renderer for tour content
 const renderMarkdown = (text: string, onCitationClick?: (index: number) => void): React.ReactNode => {
@@ -197,12 +198,31 @@ const renderMarkdown = (text: string, onCitationClick?: (index: number) => void)
 const Tour: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: tourIdFromUrl } = useParams<{ id: string }>();
+  
   const [timeRemaining, setTimeRemaining] = useState(45); // minutes
   const [isPlaying, setIsPlaying] = useState(false);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [loadingTour, setLoadingTour] = useState(false);
+  const [tourData, setTourData] = useState<any>(null);
+  const [tourLocation, setTourLocation] = useState<string>('');
   const sourceRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
+  
+  // Audio player state
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioStatus, setAudioStatus] = useState<'pending' | 'processing' | 'completed' | 'failed'>('pending');
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isAudioReady, setIsAudioReady] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false); // Toggle between button and player
+  const [playCount] = useState(() => Math.floor(Math.random() * 2000) + 500); // Generate once on mount
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle citation click - scroll to the source
   const handleCitationClick = (index: number) => {
@@ -221,9 +241,239 @@ const Tour: React.FC = () => {
     }
   };
 
-  // Get tour data from navigation state
-  const { tourData, location: tourLocation } = location.state || {};
-  
+  // Load tour data either from navigation state or from database
+  useEffect(() => {
+    const stateData = location.state as any;
+    
+    if (stateData?.tourData) {
+      // Tour data passed via navigation
+      setTourData(stateData.tourData);
+      setTourLocation(stateData.location || '');
+      // Set initial audio state from tour data
+      setAudioStatus(stateData.tourData.audioStatus || 'pending');
+      setAudioUrl(stateData.tourData.audioUrl || null);
+    } else if (tourIdFromUrl) {
+      // Load tour from database using URL parameter
+      loadTourFromDatabase(tourIdFromUrl);
+    }
+  }, [tourIdFromUrl, location.state]);
+
+  const loadTourFromDatabase = async (tourId: string) => {
+    setLoadingTour(true);
+    try {
+      const tour = await tourService.getTour(tourId);
+      setTourData(tour);
+      setTourLocation(tour.locationData?.formattedAddress || '');
+      // Set audio state from tour data
+      setAudioStatus(tour.audioStatus || 'pending');
+      setAudioUrl(tour.audioUrl || null);
+    } catch (error) {
+      console.error('Failed to load tour:', error);
+      // Show error or redirect
+      navigate('/');
+    } finally {
+      setLoadingTour(false);
+    }
+  };
+
+  // Poll for audio status when it's processing
+  useEffect(() => {
+    if (audioStatus === 'processing' && tourData?.tourId) {
+      console.log('🎙️ Starting audio status polling...');
+      
+      pollingRef.current = setInterval(async () => {
+        try {
+          const updatedTour = await tourService.getTour(tourData.tourId);
+          console.log('🔄 Audio status:', updatedTour.audioStatus);
+          
+          if (updatedTour.audioStatus === 'completed' && updatedTour.audioUrl) {
+            setAudioStatus('completed');
+            setAudioUrl(updatedTour.audioUrl);
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = null;
+            }
+          } else if (updatedTour.audioStatus === 'failed') {
+            setAudioStatus('failed');
+            setAudioError('Audio generation failed');
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = null;
+            }
+          }
+        } catch (err) {
+          console.error('Error polling audio status:', err);
+        }
+      }, 3000); // Poll every 3 seconds
+
+      return () => {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      };
+    }
+  }, [audioStatus, tourData?.tourId]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
+  // Audio event handlers
+  const handleTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  }, []);
+
+  const handleLoadedMetadata = useCallback(() => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+      setIsAudioReady(true);
+      setAudioLoading(false);
+    }
+  }, []);
+
+  const handleAudioError = useCallback(() => {
+    setAudioError('Failed to load audio');
+    setAudioLoading(false);
+    setIsAudioReady(false);
+  }, []);
+
+  const handleAudioEnded = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  }, []);
+
+  // Initialize audio element when URL is available
+  useEffect(() => {
+    if (audioUrl && !audioRef.current) {
+      setAudioLoading(true);
+      const audio = new Audio(audioUrl);
+      audio.preload = 'metadata';
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.addEventListener('error', handleAudioError);
+      audio.addEventListener('ended', handleAudioEnded);
+      audioRef.current = audio;
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        audioRef.current.removeEventListener('error', handleAudioError);
+        audioRef.current.removeEventListener('ended', handleAudioEnded);
+        audioRef.current = null;
+      }
+    };
+  }, [audioUrl, handleTimeUpdate, handleLoadedMetadata, handleAudioError, handleAudioEnded]);
+
+  // Audio control functions
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current || !isAudioReady) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(err => {
+        console.error('Failed to play audio:', err);
+        setAudioError('Failed to play audio');
+      });
+    }
+    setIsPlaying(!isPlaying);
+  }, [isPlaying, isAudioReady]);
+
+
+  const seekTo = useCallback((time: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  }, []);
+
+  const skipForward = useCallback(() => {
+    if (audioRef.current) {
+      const newTime = Math.min(audioRef.current.currentTime + 15, duration);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  }, [duration]);
+
+  const skipBackward = useCallback(() => {
+    if (audioRef.current) {
+      const newTime = Math.max(audioRef.current.currentTime - 15, 0);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  }, []);
+
+  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    const newTime = percentage * duration;
+    seekTo(newTime);
+  }, [duration, seekTo]);
+
+  const retryAudioGeneration = useCallback(async () => {
+    if (!tourData?.tourId || isRetrying) return;
+    
+    setIsRetrying(true);
+    setAudioError(null);
+    setAudioStatus('processing');
+    
+    try {
+      await tourService.generateAudio(tourData.tourId);
+      // The polling will pick up when it's ready
+    } catch (err) {
+      console.error('Failed to retry audio generation:', err);
+      setAudioError('Failed to generate audio');
+      setAudioStatus('failed');
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [tourData?.tourId, isRetrying]);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Timer for countdown (called before any conditional returns)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          navigate('/past-tours');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, [navigate]);
+
+  // Fetch map URL when component mounts or location changes (called before any conditional returns)
+  useEffect(() => {
+    if (tourLocation) {
+      fetchMapUrl(tourLocation);
+    }
+  }, [tourLocation]);
+
   // Get citations/sources from tour data
   const sources: string[] = tourData?.sources || [];
 
@@ -232,14 +482,12 @@ const Tour: React.FC = () => {
     name: tourData.title,
     description: tourData.description,
     distance: tourData.distance,
-    duration: tourData.estimatedDuration,
-    plays: Math.floor(Math.random() * 2000) + 500 // Random play count for demo
+    duration: tourData.estimatedDuration
   } : {
     name: 'Historical Downtown Walk',
     description: 'Explore the city\'s founding stories and colonial architecture',
     distance: '0.8 mi',
-    duration: 45,
-    plays: 1247
+    duration: 45
   };
 
   const currentLocation = tourLocation || '45 Smith Street, New York, NY';
@@ -315,26 +563,24 @@ To experience a full tour:
 
 Your personalized tour will include fascinating historical stories, architectural insights, and local legends tailored to your interests and location.`;
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          navigate('/past-tours');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 60000); // Update every minute
-
-    return () => clearInterval(timer);
-  }, [navigate]);
-
-  // Fetch map URL when component mounts or location changes
-  useEffect(() => {
-    if (currentLocation) {
-      fetchMapUrl(currentLocation);
-    }
-  }, [currentLocation]);
+  // Show loading state while fetching tour from database
+  if (loadingTour) {
+    return (
+      <div className="app">
+        <div className="header">
+          <BackButton onClick={() => navigate('/')} />
+          <h3 className="header-title">Loading Tour</h3>
+          <ThemeToggle />
+        </div>
+        <div className="container flex-center" style={{ height: '50vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>Loading your tour...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -454,7 +700,7 @@ Your personalized tour will include fascinating historical stories, architectura
             </div>
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <Play size={16} />
-              <span style={{ fontSize: '14px' }}>{tourInfo.plays.toLocaleString()}</span>
+              <span style={{ fontSize: '14px' }}>{playCount.toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <Calendar size={16} />
@@ -465,22 +711,271 @@ Your personalized tour will include fascinating historical stories, architectura
           </div>
         </motion.div>
 
-        <motion.button 
-          className="btn btn-primary"
-          onClick={() => setIsPlaying(!isPlaying)}
+        {/* Play Tour Button */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          onClick={() => {
+            // Temporarily disabled - no action
+          }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           style={{
-            marginBottom: '24px',
-            backgroundColor: isPlaying ? 'var(--success-color)' : 'var(--primary-color)',
+            width: '100%',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'center',
+            gap: '12px',
+            padding: '18px 24px',
+            backgroundColor: 'var(--primary-color)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '16px',
+            fontSize: '18px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            marginBottom: '24px',
+            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.2s ease'
           }}
         >
-          {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-          {isPlaying ? 'Pause Tour' : 'Start Tour'}
+          <Play size={24} />
+          Play Tour
         </motion.button>
+
+        {/* Audio Player - Hidden */}
+        {false && (
+          <AnimatePresence mode="wait">
+            {showPlayer && (
+            /* Audio Player */
+            <motion.div
+              key="audio-player"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                backgroundColor: 'var(--card-background)',
+                borderRadius: '16px',
+                padding: '20px',
+                marginBottom: '24px',
+                boxShadow: 'var(--shadow-sm)',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              {/* Audio Status Messages */}
+              {audioStatus === 'processing' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderRadius: '12px',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Loader2 size={20} color="var(--primary-color)" />
+                  </motion.div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      Generating Audio...
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      Your tour narration is being converted to speech
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {audioStatus === 'failed' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '12px',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <VolumeX size={20} color="var(--error-color)" />
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        Audio Unavailable
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {audioError || 'Could not generate audio'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={retryAudioGeneration}
+                    disabled={isRetrying}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      backgroundColor: 'var(--primary-color)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: isRetrying ? 'not-allowed' : 'pointer',
+                      opacity: isRetrying ? 0.7 : 1
+                    }}
+                  >
+                    <RefreshCw size={14} className={isRetrying ? 'spinning' : ''} />
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* Progress Bar (only show when audio is ready) */}
+              {audioStatus === 'completed' && audioUrl && (
+                <>
+                  <div
+                    onClick={handleProgressClick}
+                    style={{
+                      width: '100%',
+                      height: '8px',
+                      backgroundColor: 'var(--secondary-color)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      marginBottom: '12px',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <motion.div
+                      style={{
+                        height: '100%',
+                        backgroundColor: 'var(--primary-color)',
+                        borderRadius: '4px',
+                        width: `${duration ? (currentTime / duration) * 100 : 0}%`
+                      }}
+                      transition={{ duration: 0.1 }}
+                    />
+                  </div>
+
+                  {/* Time Display */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px',
+                    fontFamily: 'monospace'
+                  }}>
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </>
+              )}
+
+              {/* Player Controls */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px'
+              }}>
+                {/* Skip Backward */}
+                <button
+                  onClick={skipBackward}
+                  disabled={!isAudioReady}
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'var(--secondary-color)',
+                    color: isAudioReady ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    cursor: isAudioReady ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    opacity: isAudioReady ? 1 : 0.5
+                  }}
+                >
+                  <SkipBack size={18} />
+                </button>
+
+                {/* Play/Pause Button */}
+                <motion.button
+                  onClick={togglePlayPause}
+                  disabled={audioStatus !== 'completed' || !isAudioReady}
+                  whileHover={isAudioReady ? { scale: 1.05 } : {}}
+                  whileTap={isAudioReady ? { scale: 0.95 } : {}}
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: audioStatus === 'completed' && isAudioReady ? 
+                      (isPlaying ? 'var(--success-color)' : 'var(--primary-color)') : 
+                      'var(--secondary-color)',
+                    color: audioStatus === 'completed' && isAudioReady ? 'white' : 'var(--text-secondary)',
+                    cursor: audioStatus === 'completed' && isAudioReady ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: audioStatus === 'completed' && isAudioReady ? 
+                      '0 4px 16px rgba(99, 102, 241, 0.3)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {audioLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Loader2 size={28} />
+                    </motion.div>
+                  ) : isPlaying ? (
+                    <Pause size={28} />
+                  ) : (
+                    <Play size={28} style={{ marginLeft: '3px' }} />
+                  )}
+                </motion.button>
+
+                {/* Skip Forward */}
+                <button
+                  onClick={skipForward}
+                  disabled={!isAudioReady}
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'var(--secondary-color)',
+                    color: isAudioReady ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    cursor: isAudioReady ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    opacity: isAudioReady ? 1 : 0.5
+                  }}
+                >
+                  <SkipForward size={18} />
+                </button>
+              </div>
+            </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

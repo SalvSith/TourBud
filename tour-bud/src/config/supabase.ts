@@ -11,17 +11,16 @@ export const SUPABASE_CONFIG = {
   endpoints: {
     geocode: '/functions/v1/geocode',
     getPlaces: '/functions/v1/get-places',
-    generateTour: '/functions/v1/generate-tour',
-    getTour: '/functions/v1/get-tour',
     getMapUrl: '/functions/v1/get-map-url',
     placesAutocomplete: '/functions/v1/places-autocomplete',
-    // Deep research endpoints
-    startDeepResearch: '/functions/v1/start-deep-research',
-    checkResearchStatus: '/functions/v1/check-research-status',
-    // Perplexity research (primary research method)
+    getIpLocation: '/functions/v1/get-ip-location',
+    // Primary tour generation (Perplexity API)
     perplexityResearch: '/functions/v1/perplexity-research',
-    // IP-based geolocation fallback
-    getIpLocation: '/functions/v1/get-ip-location'
+    // Tour storage and retrieval
+    getTour: '/functions/v1/get-tour',
+    listTours: '/functions/v1/list-tours',
+    // Audio generation (ElevenLabs)
+    generateAudio: '/functions/v1/generate-audio'
   }
 };
 
@@ -33,8 +32,9 @@ export const SUPABASE_CONFIG = {
 //   endpoints: {
 //     geocode: '/functions/v1/geocode',
 //     getPlaces: '/functions/v1/get-places',
-//     generateTour: '/functions/v1/generate-tour',
-//     getTour: '/functions/v1/get-tour',
-//     getMapUrl: '/functions/v1/get-map-url'
+//     getMapUrl: '/functions/v1/get-map-url',
+//     placesAutocomplete: '/functions/v1/places-autocomplete',
+//     getIpLocation: '/functions/v1/get-ip-location',
+//     perplexityResearch: '/functions/v1/perplexity-research'
 //   }
 // }; 

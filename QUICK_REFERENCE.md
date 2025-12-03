@@ -1,58 +1,55 @@
-# TourBud Deep Research - Quick Reference
+# TourBud Perplexity Research - Quick Reference
 
-## 🚀 What Just Happened?
+## 🚀 What's Happening?
 
-Your TourBud app now uses **OpenAI's o3-deep-research** model to create incredibly detailed historical walking tours. This is the same AI technology that powers advanced research capabilities.
+Your TourBud app uses **Perplexity's Sonar-Pro API** to create comprehensive historical walking tours with real-time web research and citations.
 
 ## 📱 How Users Experience It
 
-### Old Way (Before):
-1. Pick location → Wait 30 seconds → Get basic 8-10 min tour
+### Current System:
+1. Pick location → Wait 30-90 seconds → Get comprehensive 15-25 min tour with citations
 
-### New Way (Now):
-1. Pick location → Wait 3-10 minutes → Get comprehensive 30-45 min tour with sources
+## 🎯 Key Features
 
-## 🎯 Key Improvements
-
-| Feature | Before | After |
-|---------|--------|-------|
-| **Research Depth** | Basic AI knowledge | Hundreds of web sources |
-| **Tour Length** | 8-10 minutes | 30-45 minutes |
-| **Historical Facts** | Generic | Specific dates, names, events |
-| **Sources** | None | URL citations included |
-| **User Interests** | Forced into narrative | Subtle influence only |
-| **Generation Time** | 30 seconds | 3-10 minutes |
+| Feature | Details |
+|---------|---------|
+| **Research Method** | 5 parallel Perplexity queries |
+| **Tour Length** | 15-25 minutes |
+| **Historical Facts** | Specific dates, names, events from web |
+| **Sources** | URL citations included |
+| **User Interests** | Subtle influence only |
+| **Generation Time** | 30-90 seconds |
+| **Cost** | ~$0.50-1 per tour |
 
 ## 🔧 What's Deployed
 
 ### Database:
-- ✅ `deep_research_jobs` table (tracks research progress)
+- ✅ `deep_research_jobs` table (stores tour data and citations)
 
 ### Edge Functions:
-- ✅ `start-deep-research` (starts research)
-- ✅ `check-research-status` (polls for completion)  
-- ✅ `generate-tour` (updated with new API)
+- ✅ `perplexity-research` (primary tour generation)
+- ✅ `geocode`, `get-places`, `get-map-url`, `places-autocomplete`, `get-ip-location`
 
 ### Frontend:
-- ✅ New progress UI with timer
-- ✅ Fun facts during research
-- ✅ Handles long wait times
+- ✅ 3-stage progress UI with timer
+- ✅ Optimized for fast generation
+- ✅ Citation system with clickable sources
 
 ## 💰 Cost Considerations
 
-**Important**: o3-deep-research is expensive!
+**Good News**: Perplexity is cost-effective!
 
-- **Per Tour**: ~$5-15 depending on research depth
-- **Old API**: ~$0.50-1 per tour
-- **10x more expensive** but **10x better quality**
+- **Per Tour**: ~$0.50-1 per tour
+- **Much cheaper** than previous OpenAI deep research
+- **Fast generation** with comprehensive results
 
 ### Recommendations:
-1. **For Testing**: Use sparingly, costs add up
+1. **For Testing**: Reasonable costs for testing
 2. **For Production**: Consider:
-   - Paid user tiers
+   - Paid user tiers for sustainability
    - Usage limits per user
-   - Cache popular streets
-   - Offer both "quick" and "deep" tour options
+   - Cache popular streets to reduce API calls
+   - Monitor Perplexity API usage
 
 ## 🧪 Testing
 
@@ -61,50 +58,52 @@ Your TourBud app now uses **OpenAI's o3-deep-research** model to create incredib
 1. Go to: https://tourbud.vercel.app
 2. Enter: "Abbey Road, London" (or any historic street)
 3. Select interests
-4. Click Generate Tour
-5. Wait ~5 minutes
-6. See comprehensive historical tour!
+4. Select places (optional)
+5. Click Generate Tour
+6. Wait 30-90 seconds
+7. See comprehensive historical tour with citations!
 ```
 
 ### What to Look For:
-- ✅ Progress UI shows elapsed time
-- ✅ Fun facts rotate during research
+- ✅ 3-stage progress UI (Searching → Researching → Writing)
+- ✅ Elapsed time counter
 - ✅ Tour includes specific historical dates
 - ✅ Tour mentions real people and events
-- ✅ Tour is 30-45 minutes long
-- ✅ Sources are cited (if available)
+- ✅ Tour is 15-25 minutes long
+- ✅ Clickable source citations at bottom
 
 ## 🔍 Monitoring
 
 ### Check Function Logs:
 1. Go to: https://supabase.com/dashboard/project/zszmnvmohiuzlokkexzk/functions
-2. Click on any function
+2. Click on `perplexity-research` function
 3. View "Logs" tab
 
 ### Check Database:
 ```sql
--- See all research jobs
+-- See all generated tours
 SELECT * FROM deep_research_jobs ORDER BY created_at DESC;
 
--- See completed tours
-SELECT research_id, status, word_count, created_at, completed_at 
+-- See tours with sources
+SELECT research_id, word_count, array_length(sources, 1) as source_count, created_at 
 FROM deep_research_jobs 
-WHERE status = 'completed';
+WHERE status = 'completed'
+ORDER BY created_at DESC;
 ```
 
 ## ⚠️ Troubleshooting
 
 ### "Research Failed" Error:
-- **Cause**: OpenAI rate limit or API error
-- **Solution**: Wait a few minutes and try again
+- **Cause**: Perplexity API rate limit or error
+- **Solution**: Retry immediately or wait a minute
 
-### Research Takes Too Long (>15 min):
-- **Cause**: Timeout protection
-- **Solution**: System will auto-fail after 15 minutes
+### Generation Takes Too Long (>2 min):
+- **Cause**: Network issues or API slowdown
+- **Solution**: Refresh and try again
 
-### No Sources in Tour:
-- **Cause**: AI didn't find citable sources
-- **Solution**: This is okay, tour is still valid
+### Few or No Sources:
+- **Cause**: Limited web information for that location
+- **Solution**: Tour is still generated with available data
 
 ## 📊 Your Project Info
 
@@ -117,34 +116,37 @@ WHERE status = 'completed';
 
 ### API Flow:
 ```
-1. POST /start-deep-research
-   → Returns: { responseId, researchId, status: 'queued' }
-
-2. Poll: POST /check-research-status
-   → Returns: { status: 'in_progress', progress: '...' }
+1. POST /perplexity-research
+   → Runs 5 parallel queries:
+     - Interests × Area
+     - Selected Places (if any)
+     - Area General History
+     - Street Specific
+     - Notable Places (100+ reviews)
    
-3. Keep polling every 10 seconds...
+2. Perplexity searches web for each query
 
-4. Final: POST /check-research-status
-   → Returns: { status: 'completed', tourData: {...} }
+3. Results combined into comprehensive tour
+
+4. Returns: { tourId, narration, title, description, 
+              estimatedDuration, distance, sources[] }
 ```
 
-### Models Used:
-- **Deep Research**: `o3-deep-research` (for comprehensive tours)
-- **Quick Tours**: `gpt-4o` with web_search (for faster tours)
-- **Fallback**: `gpt-4o-mini` (if needed)
+### Model Used:
+- **Primary**: Perplexity `sonar-pro` with web search
+- **Search Context**: High (comprehensive results)
 
 ## 🎉 You're All Set!
 
-Everything is deployed and working. Your app now creates the most comprehensive historical walking tours possible using cutting-edge AI research technology.
+Everything is deployed and working. Your app creates comprehensive historical walking tours in 30-90 seconds using Perplexity's real-time web research.
 
 ### Questions?
 - Check Supabase logs for errors
 - Review browser console for frontend issues
-- Verify OpenAI API key has o3-deep-research access
+- Verify Perplexity API key is configured
 
 ---
 
-**Status**: ✅ All systems operational
-**Last Updated**: December 2, 2024
+**Status**: ✅ All systems operational (Perplexity-exclusive)
+**Last Updated**: December 2024
 

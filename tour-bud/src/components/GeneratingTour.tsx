@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Search, Check, AlertCircle, Globe, CheckCircle, Clock, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Check, AlertCircle, Globe, CheckCircle, Clock, Sparkles, Volume2 } from 'lucide-react';
 import tourService from '../services/tourService';
 
 interface LoadingStep {
@@ -27,7 +27,7 @@ const GeneratingTour: React.FC = () => {
   // Get location, interests, and selected places from navigation state
   const { coordinates, interests, geocodeData, selectedPlaces, nearbyPlaces } = location.state || {};
 
-  // 3 simple stages for Perplexity research
+  // 4 stages: Research (3 steps) + Audio generation
   const steps: LoadingStep[] = [
     {
       id: 1,
@@ -46,6 +46,12 @@ const GeneratingTour: React.FC = () => {
       title: "Writing",
       description: "Creating your personalized tour content",
       icon: <CheckCircle size={24} />,
+    },
+    {
+      id: 4,
+      title: "Generating Audio",
+      description: "Converting tour to speech narration",
+      icon: <Volume2 size={24} />,
     }
   ];
 
@@ -81,9 +87,16 @@ const GeneratingTour: React.FC = () => {
       setCurrentStep(2);
     }, 25000);
     
+    // Step 3: After 45 seconds, move to "Generating Audio" (this actually happens in parallel)
+    const step3Timer = setTimeout(() => {
+      setCompletedSteps([0, 1, 2]);
+      setCurrentStep(3);
+    }, 45000);
+    
     return () => {
       clearTimeout(step1Timer);
       clearTimeout(step2Timer);
+      clearTimeout(step3Timer);
     };
   }, [isGenerating]);
 
@@ -126,9 +139,9 @@ const GeneratingTour: React.FC = () => {
         nearbyPlaces || []
       );
 
-      // Mark all 3 steps complete
-      setCompletedSteps([0, 1, 2]);
-      setCurrentStep(2);
+      // Mark all 4 steps complete (audio starts in background)
+      setCompletedSteps([0, 1, 2, 3]);
+      setCurrentStep(3);
       
       await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -170,20 +183,20 @@ const GeneratingTour: React.FC = () => {
       case 'completed':
         return {
           border: '2px solid var(--success-color)',
-          opacity: 0.7,
-          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.1)'
+          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.1)',
+          filter: 'brightness(0.95)'
         };
       case 'active':
         return {
           border: '2px solid var(--primary-color)',
-          opacity: 1,
-          boxShadow: '0 8px 32px rgba(99, 102, 241, 0.2)'
+          boxShadow: '0 8px 32px rgba(99, 102, 241, 0.2)',
+          filter: 'brightness(1)'
         };
       default:
         return {
           border: '2px solid var(--border-color)',
-          opacity: 0.5,
-          boxShadow: 'none'
+          boxShadow: 'none',
+          filter: 'brightness(0.9)'
         };
     }
   };
@@ -235,12 +248,22 @@ const GeneratingTour: React.FC = () => {
   }
 
   return (
-    <div className="app">
+    <motion.div 
+      className="app"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="container flex-center" style={{ minHeight: '100vh', padding: '40px 20px' }}>
         <div className="text-center" style={{ width: '100%', maxWidth: '520px' }}>
           
           {/* Header with Timer */}
-          <div style={{ marginBottom: '32px' }}>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ marginBottom: '32px' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
               <Sparkles size={28} color="var(--primary-color)" />
               <h2 style={{ 
@@ -283,38 +306,43 @@ const GeneratingTour: React.FC = () => {
                 elapsed
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Steps List */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            style={{ marginBottom: '32px' }}
-          >
+          <div style={{ marginBottom: '32px' }}>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '12px'
             }}>
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  style={{
-                    backgroundColor: 'var(--card-background)',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                    transition: 'all 0.3s ease',
-                    ...getStepStyles(index)
-                  }}
-                >
+              <AnimatePresence mode="sync">
+                {steps.map((step, index) => (
+                  <motion.div
+                    key={step.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ 
+                      delay: 0.15 + index * 0.08, 
+                      duration: 0.35, 
+                      ease: [0.25, 0.1, 0.25, 1]
+                    }}
+                    style={{
+                      backgroundColor: 'var(--card-background)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      willChange: 'opacity, transform',
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      WebkitTransform: 'translate3d(0, 0, 0)',
+                      transform: 'translate3d(0, 0, 0)',
+                      ...getStepStyles(index)
+                    }}
+                  >
                   {/* Step Icon */}
                   <div style={{
                     width: '40px',
@@ -365,26 +393,32 @@ const GeneratingTour: React.FC = () => {
                   )}
                 </motion.div>
               ))}
+              </AnimatePresence>
             </div>
-          </motion.div>
+          </div>
 
           {/* Footer Message */}
-          <div style={{ 
-            backgroundColor: 'rgba(99, 102, 241, 0.05)',
-            borderRadius: '8px',
-            padding: '12px 16px'
-          }}>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            style={{ 
+              backgroundColor: 'rgba(99, 102, 241, 0.05)',
+              borderRadius: '8px',
+              padding: '12px 16px'
+            }}
+          >
             <p style={{ 
               fontSize: '13px',
               color: 'var(--text-secondary)',
               margin: 0
             }}>
-              💡 Usually takes <strong>30-60 seconds</strong> to research and write your tour.
+              💡 Usually takes <strong>30-60 seconds</strong> to research your tour. Audio narration will be ready shortly after.
             </p>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

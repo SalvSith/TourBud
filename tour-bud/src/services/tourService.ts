@@ -29,21 +29,19 @@ interface TourResponse {
   estimatedDuration: number;
   distance: string;
   sources?: string[];
+  audioUrl?: string;
+  audioDuration?: number;
+  audioFileSize?: number;
+  audioStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  locationData?: any;
+  createdAt?: string;
 }
 
-// Deep research types
-interface StartDeepResearchResponse {
-  researchId: string;
-  responseId: string;
-  status: 'queued' | 'in_progress';
-  estimatedMinutes: number;
-  message: string;
-}
-
-interface CheckResearchStatusResponse {
-  status: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
-  progress?: string;
-  tourData?: TourResponse;
+interface AudioGenerationResponse {
+  success: boolean;
+  audioUrl?: string;
+  audioDuration?: number;
+  audioFileSize?: number;
   error?: string;
 }
 
@@ -98,28 +96,9 @@ class TourService {
     }
   }
 
-  async generateTour(
-    locationData: GeocodeResponse & { latitude: number; longitude: number },
-    places: Place[],
-    interests: string[]
-  ): Promise<TourResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}${SUPABASE_CONFIG.endpoints.generateTour}`, {
-        method: 'POST',
-        headers: this.headers,
-        body: JSON.stringify({ locationData, places, interests })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Generate tour failed: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Generate tour error:', error);
-      throw error;
-    }
-  }
+  // ============================================
+  // TOUR RETRIEVAL
+  // ============================================
 
   async getTour(tourId: string): Promise<TourResponse> {
     try {
@@ -139,25 +118,25 @@ class TourService {
     }
   }
 
-  // Full tour generation flow
-  async generateFullTour(latitude: number, longitude: number, interests: string[]): Promise<TourResponse> {
+  async listTours(limit: number = 20, offset: number = 0, userId?: string): Promise<{ tours: any[], total: number }> {
     try {
-      // Step 1: Geocode location
-      const geocodeData = await this.geocodeLocation(latitude, longitude);
-      
-      // Step 2: Get places on the street
-      const { places } = await this.getPlacesOnStreet(geocodeData.streetName, latitude, longitude);
-      
-      // Step 3: Generate tour with OpenAI
-      const tourData = await this.generateTour(
-        { ...geocodeData, latitude, longitude },
-        places,
-        interests
-      );
+      let url = `${this.baseUrl}${SUPABASE_CONFIG.endpoints.listTours}?limit=${limit}&offset=${offset}`;
+      if (userId) {
+        url += `&userId=${userId}`;
+      }
 
-      return tourData;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`List tours failed: ${response.statusText}`);
+      }
+
+      return await response.json();
     } catch (error) {
-      console.error('Full tour generation error:', error);
+      console.error('List tours error:', error);
       throw error;
     }
   }
@@ -207,96 +186,74 @@ class TourService {
   }
 
   // ============================================
-  // LEGACY DEEP RESEARCH METHODS (OpenAI)
-  // Kept for fallback purposes
+  // AUDIO GENERATION
   // ============================================
 
-  async startDeepResearch(
-    locationData: GeocodeResponse & { latitude: number; longitude: number },
-    places: Place[],
-    interests: string[],
-    userId?: string
-  ): Promise<StartDeepResearchResponse> {
+  /**
+   * Manually trigger audio generation for a tour.
+   * Usually audio is generated automatically when the tour is created,
+   * but this can be used to retry if it failed.
+   */
+  async generateAudio(tourId: string): Promise<AudioGenerationResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}${SUPABASE_CONFIG.endpoints.startDeepResearch}`, {
+      const response = await fetch(`${this.baseUrl}${SUPABASE_CONFIG.endpoints.generateAudio}`, {
         method: 'POST',
         headers: this.headers,
-        body: JSON.stringify({ locationData, places, interests, userId })
+        body: JSON.stringify({ tourId })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Start deep research failed: ${response.statusText}`);
+        throw new Error(errorData.error || `Audio generation failed: ${response.statusText}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Start deep research error:', error);
+      console.error('Audio generation error:', error);
       throw error;
     }
   }
 
-  async checkResearchStatus(
-    responseId: string,
-    researchId?: string
-  ): Promise<CheckResearchStatusResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}${SUPABASE_CONFIG.endpoints.checkResearchStatus}`, {
-        method: 'POST',
-        headers: this.headers,
-        body: JSON.stringify({ responseId, researchId })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Check research status failed: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Check research status error:', error);
-      throw error;
-    }
-  }
-
-  async generateDeepResearchTour(
-    locationData: GeocodeResponse & { latitude: number; longitude: number },
-    places: Place[],
-    interests: string[],
-    onProgress?: (status: string, progress?: string) => void,
-    pollInterval: number = 10000,
-    maxWaitTime: number = 900000
+  /**
+   * Poll for audio status until it's ready or fails.
+   * Returns when audio is completed or after timeout.
+   */
+  async waitForAudio(
+    tourId: string, 
+    options: { 
+      pollInterval?: number; 
+      maxAttempts?: number;
+      onStatusChange?: (status: string) => void;
+    } = {}
   ): Promise<TourResponse> {
-    onProgress?.('starting', 'Initiating deep historical research...');
-    const startResponse = await this.startDeepResearch(locationData, places, interests);
+    const { 
+      pollInterval = 3000, 
+      maxAttempts = 60, // 3 minutes max with 3s interval
+      onStatusChange 
+    } = options;
+
+    let attempts = 0;
     
-    const { responseId, researchId } = startResponse;
-    onProgress?.('queued', startResponse.message);
-
-    const startTime = Date.now();
-    let lastStatus = '';
-
-    while (Date.now() - startTime < maxWaitTime) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-      const statusResponse = await this.checkResearchStatus(responseId, researchId);
+    while (attempts < maxAttempts) {
+      const tour = await this.getTour(tourId);
       
-      if (statusResponse.status !== lastStatus) {
-        lastStatus = statusResponse.status;
-        onProgress?.(statusResponse.status, statusResponse.progress);
+      if (onStatusChange) {
+        onStatusChange(tour.audioStatus || 'pending');
       }
-
-      if (statusResponse.status === 'completed' && statusResponse.tourData) {
-        onProgress?.('completed', 'Research complete! Your tour is ready.');
-        return statusResponse.tourData;
+      
+      if (tour.audioStatus === 'completed') {
+        return tour;
       }
-
-      if (statusResponse.status === 'failed' || statusResponse.status === 'cancelled') {
-        throw new Error(statusResponse.error || 'Research failed');
+      
+      if (tour.audioStatus === 'failed') {
+        throw new Error('Audio generation failed');
       }
+      
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
-
-    throw new Error('Research timed out. Please try again.');
+    
+    throw new Error('Audio generation timed out');
   }
 }
 

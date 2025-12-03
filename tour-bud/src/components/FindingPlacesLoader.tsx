@@ -78,7 +78,12 @@ const FindingPlacesLoader: React.FC<FindingPlacesLoaderProps> = ({ streetName })
   }, [currentStage]);
 
   return (
-    <div className="finding-places-loader">
+    <motion.div 
+      className="finding-places-loader"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="loader-content">
         
         {/* Main Icon with Animation */}
@@ -86,7 +91,7 @@ const FindingPlacesLoader: React.FC<FindingPlacesLoaderProps> = ({ streetName })
           className="main-icon-container"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
           <motion.div
             className="main-icon-bg"
@@ -110,7 +115,7 @@ const FindingPlacesLoader: React.FC<FindingPlacesLoaderProps> = ({ streetName })
               className="progress-bar-fill"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             />
             <div className="progress-bar-bg" />
           </div>
@@ -123,10 +128,10 @@ const FindingPlacesLoader: React.FC<FindingPlacesLoaderProps> = ({ streetName })
          <AnimatePresence mode="wait">
            <motion.div
              key={currentStage}
-             initial={{ opacity: 0, y: 20 }}
+             initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
-             exit={{ opacity: 0, y: -20 }}
-             transition={{ duration: 0.4 }}
+             exit={{ opacity: 0, y: -10 }}
+             transition={{ duration: 0.3, ease: "easeInOut" }}
              className="stage-info"
            >
              <h3 className="stage-title">
@@ -265,8 +270,13 @@ const FindingPlacesLoader: React.FC<FindingPlacesLoaderProps> = ({ streetName })
            color: var(--text-primary);
            font-weight: 600;
          }
+         
+         /* Prevent layout shift during load */
+         * {
+           will-change: opacity, transform;
+         }
       `}</style>
-    </div>
+    </motion.div>
   );
 };
 

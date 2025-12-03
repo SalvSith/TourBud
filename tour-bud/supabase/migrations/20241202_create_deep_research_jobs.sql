@@ -73,9 +73,9 @@ CREATE TRIGGER trigger_update_deep_research_jobs_updated_at
   EXECUTE FUNCTION update_deep_research_jobs_updated_at();
 
 -- Comment on table
-COMMENT ON TABLE deep_research_jobs IS 'Tracks o3-deep-research background jobs for tour generation';
+COMMENT ON TABLE deep_research_jobs IS 'Tracks Perplexity research jobs and stores generated tour data';
 COMMENT ON COLUMN deep_research_jobs.research_id IS 'Our internal unique ID for the research job';
-COMMENT ON COLUMN deep_research_jobs.openai_response_id IS 'OpenAI Responses API response ID for polling';
+COMMENT ON COLUMN deep_research_jobs.openai_response_id IS 'Research identifier (used for tracking, not OpenAI-specific)';
 COMMENT ON COLUMN deep_research_jobs.location_data IS 'JSON containing street, city, country, coordinates';
-COMMENT ON COLUMN deep_research_jobs.sources IS 'URLs of sources cited in the research';
+COMMENT ON COLUMN deep_research_jobs.sources IS 'URLs of sources cited in the research from Perplexity';
 

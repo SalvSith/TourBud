@@ -4,18 +4,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-interface TourResponse {
+interface TourSummary {
   tourId: string;
-  narration: string;
   title: string;
   description: string;
+  streetName: string;
+  city: string;
+  country: string;
   estimatedDuration: number;
   distance: string;
-  sources?: string[];
-  audioUrl?: string;
-  audioStatus?: string;
-  locationData?: any;
-  createdAt?: string;
+  audioStatus: string;
+  createdAt: string;
+  viewCount: number;
 }
 
 serve(async (req) => {
@@ -31,17 +31,9 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const tourId = url.searchParams.get('tourId');
-
-    if (!tourId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing tourId parameter' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
-    }
+    const limit = parseInt(url.searchParams.get('limit') || '20');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const userId = url.searchParams.get('userId'); // Optional - for future auth
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error('Missing Supabase configuration');
@@ -50,69 +42,59 @@ serve(async (req) => {
     // Connect to database
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Retrieve tour from database
-    const { data: tour, error } = await supabase
+    // Build query
+    let query = supabase
       .from('tours')
-      .select('*')
-      .eq('tour_id', tourId)
-      .single();
+      .select('tour_id, title, description, street_name, city, country, estimated_duration, distance, audio_status, created_at, view_count')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    // If userId provided, filter by user
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      // For now, return all tours (or could filter by is_public in future)
+      // query = query.eq('is_public', true);
+    }
+
+    const { data: tours, error, count } = await query;
 
     if (error) {
       console.error('Database error:', error);
-      
-      if (error.code === 'PGRST116') {
-        // Not found
-        return new Response(
-          JSON.stringify({ error: 'Tour not found' }),
-          { 
-            status: 404,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders }
-          }
-        );
-      }
-      
       throw error;
     }
 
-    if (!tour) {
-      return new Response(
-        JSON.stringify({ error: 'Tour not found' }),
-        { 
-          status: 404,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
-    }
-
-    // Increment view count
-    await supabase.rpc('increment_tour_view_count', { tour_id_param: tourId });
-
     // Format response
-    const response: TourResponse = {
+    const formattedTours: TourSummary[] = (tours || []).map(tour => ({
       tourId: tour.tour_id,
       title: tour.title,
       description: tour.description,
-      narration: tour.narration,
+      streetName: tour.street_name,
+      city: tour.city,
+      country: tour.country,
       estimatedDuration: tour.estimated_duration,
       distance: tour.distance,
-      sources: tour.sources || [],
-      audioUrl: tour.audio_url,
       audioStatus: tour.audio_status,
-      locationData: tour.location_data,
       createdAt: tour.created_at,
-    };
+      viewCount: tour.view_count,
+    }));
 
-    console.log(`✅ Retrieved tour: ${tourId} (views: ${tour.view_count + 1})`);
+    console.log(`✅ Retrieved ${formattedTours.length} tours`);
 
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify({
+        tours: formattedTours,
+        total: count || formattedTours.length,
+        limit,
+        offset
+      }),
       { 
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       }
     );
 
   } catch (error) {
-    console.error('Get tour error:', error);
+    console.error('List tours error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -121,4 +103,5 @@ serve(async (req) => {
       }
     );
   }
-}); 
+});
+
