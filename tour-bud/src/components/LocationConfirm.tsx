@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
@@ -26,7 +26,8 @@ const LocationConfirm: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isInputExpanded, setIsInputExpanded] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Store last coordinates - we'll get these from selected address
@@ -56,6 +57,20 @@ const LocationConfirm: React.FC = () => {
     fetchMapUrl('New York, NY');
   }, []);
 
+  // Handle closing the expanded input
+  const handleCloseExpandedInput = () => {
+    setIsInputExpanded(false);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setSelectedSuggestionIndex(-1);
+    
+    // If there's a current location and user hasn't confirmed a selection, revert
+    if (currentLocation && location !== currentLocation) {
+      setLocation(currentLocation);
+      fetchMapUrl(currentLocation);
+    }
+  };
+
   // Handle clicks outside the input/suggestions to close dropdown and reset to current location
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,15 +80,7 @@ const LocationConfirm: React.FC = () => {
         !inputRef.current.contains(event.target as Node) &&
         !suggestionsRef.current.contains(event.target as Node)
       ) {
-        setShowSuggestions(false);
-        setSuggestions([]);
-        setSelectedSuggestionIndex(-1);
-        
-        // If there's a current location and user hasn't confirmed a selection, revert
-        if (currentLocation && location !== currentLocation) {
-          setLocation(currentLocation);
-          fetchMapUrl(currentLocation);
-        }
+        handleCloseExpandedInput();
       }
     };
 
@@ -345,9 +352,15 @@ const LocationConfirm: React.FC = () => {
   };
 
   // Debounced input handler
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLocationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newLocation = e.target.value;
     setLocation(newLocation);
+    
+    // Auto-resize textarea
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
     
     // Debounce autocomplete requests
     const timeoutId = setTimeout(() => {
@@ -357,12 +370,21 @@ const LocationConfirm: React.FC = () => {
     return () => clearTimeout(timeoutId);
   };
 
+  // Handle input focus - expand to full screen
+  const handleInputFocus = () => {
+    setIsInputExpanded(true);
+    if (location.length >= 2) {
+      setShowSuggestions(suggestions.length > 0);
+    }
+  };
+
   // Handle suggestion selection
   const handleSuggestionSelect = async (suggestion: PlaceSuggestion) => {
     setLocation(suggestion.description);
     setCurrentLocation(suggestion.description); // Update current location to the selected one
     setSuggestions([]);
     setShowSuggestions(false);
+    setIsInputExpanded(false); // Close expanded view after selection
     fetchMapUrl(suggestion.description);
     
     // Properly geocode the selected address to get accurate coordinates
@@ -405,6 +427,12 @@ const LocationConfirm: React.FC = () => {
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleCloseExpandedInput();
+      inputRef.current?.blur();
+      return;
+    }
+    
     if (!showSuggestions || suggestions.length === 0) return;
 
     switch (e.key) {
@@ -425,10 +453,6 @@ const LocationConfirm: React.FC = () => {
         if (selectedSuggestionIndex >= 0) {
           handleSuggestionSelect(suggestions[selectedSuggestionIndex]);
         }
-        break;
-      case 'Escape':
-        setShowSuggestions(false);
-        setSelectedSuggestionIndex(-1);
         break;
     }
   };
@@ -596,64 +620,179 @@ const LocationConfirm: React.FC = () => {
             ) : null}
           </div>
 
-          {/* Address Input with Autocomplete */}
+          {/* Address Input Preview Card - Clicking opens fullscreen */}
           <div 
             className="card" 
+            onClick={() => setIsInputExpanded(true)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setIsInputExpanded(true)}
+            aria-label="Enter your location"
             style={{ 
               marginBottom: '32px', 
-              position: 'relative',
-              transition: 'all 0.3s ease',
-              overflow: 'hidden'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
             }}
           >
-                      {error && (
-            <div style={{
-              padding: '16px',
-              backgroundColor: 'var(--error-color)',
-              color: 'white',
-              borderRadius: 'var(--border-radius)',
-              fontSize: '14px',
-              marginBottom: '16px',
-              lineHeight: '1.5'
-            }}>
-              <div style={{ marginBottom: '8px' }}>
-                {error}
+            {error && (
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'var(--error-color)',
+                color: 'white',
+                borderRadius: 'var(--border-radius)',
+                fontSize: '14px',
+                marginBottom: '16px',
+                lineHeight: '1.5'
+              }}>
+                <div style={{ marginBottom: '8px' }}>
+                  {error}
+                </div>
+                {error.includes('Location blocked') && (
+                  <div style={{
+                    fontSize: '12px',
+                    opacity: '0.9',
+                    marginTop: '8px'
+                  }}>
+                    <strong>Quick fix:</strong> Tap the "aA" icon in Safari's address bar → Website Settings → Location → Allow
+                  </div>
+                )}
+                {error.includes('HTTPS') && (
+                  <div style={{
+                    fontSize: '12px',
+                    opacity: '0.9',
+                    marginTop: '8px'
+                  }}>
+                    <strong>Current URL:</strong> {window.location.href}
+                  </div>
+                )}
               </div>
-              {error.includes('Location blocked') && (
-                <div style={{
-                  fontSize: '12px',
-                  opacity: '0.9',
-                  marginTop: '8px'
-                }}>
-                  <strong>Quick fix:</strong> Tap the "aA" icon in Safari's address bar → Website Settings → Location → Allow
-                </div>
-              )}
-              {error.includes('HTTPS') && (
-                <div style={{
-                  fontSize: '12px',
-                  opacity: '0.9',
-                  marginTop: '8px'
-                }}>
-                  <strong>Current URL:</strong> {window.location.href}
-                </div>
-              )}
-            </div>
-          )}
+            )}
             
-            <div style={{ position: 'relative' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '16px',
+              border: '2px solid var(--border-color)',
+              borderRadius: '12px',
+              backgroundColor: 'var(--background)',
+              transition: 'all 0.2s ease',
+            }}>
+              <MapPin 
+                size={18} 
+                style={{
+                  color: 'var(--primary-color)',
+                  marginRight: '12px',
+                  flexShrink: 0
+                }}
+              />
+              <span style={{
+                color: location ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontSize: '16px',
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {location || 'Enter your address, neighborhood, or landmark...'}
+              </span>
+            </div>
+          </div>
+
+          <p style={{ 
+            textAlign: 'center', 
+            fontSize: '12px', 
+            color: 'var(--text-secondary)',
+            marginTop: '32px',
+            marginBottom: '80px'
+          }}>
+            Locations are used to generate tours and are never stored or shared.
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Fullscreen Input Overlay */}
+      <AnimatePresence>
+        {isInputExpanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'var(--background)',
+              zIndex: 1000,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Header */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                gap: '12px'
+              }}
+            >
+              <button
+                onClick={handleCloseExpandedInput}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                <X size={24} />
+              </button>
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '18px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                Search Location
+              </h3>
+            </motion.div>
+
+            {/* Input Area */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)'
+              }}
+            >
               <div style={{
                 position: 'relative',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'flex-start'
               }}>
                 <div
                   onClick={!isRequestingLocation ? getCurrentLocation : undefined}
                   style={{
                     position: 'absolute',
                     left: '16px',
+                    top: '16px',
                     zIndex: 1,
                     cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
-                    transition: 'color 0.2s ease',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -680,25 +819,30 @@ const LocationConfirm: React.FC = () => {
                     />
                   )}
                 </div>
-                <input
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={location}
                   onChange={handleLocationChange}
                   onKeyDown={handleKeyDown}
-                  onFocus={() => location.length >= 2 && setShowSuggestions(suggestions.length > 0)}
+                  onFocus={handleInputFocus}
+                  autoFocus
+                  rows={1}
                   style={{
                     width: '100%',
                     padding: '16px 48px 16px 48px',
-                    border: `2px solid ${showSuggestions ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                    borderRadius: showSuggestions ? '12px 12px 0 0' : '12px',
+                    border: '2px solid var(--primary-color)',
+                    borderRadius: '12px',
                     fontSize: '16px',
                     fontFamily: 'Inter, sans-serif',
                     backgroundColor: 'var(--background)',
                     color: 'var(--text-primary)',
                     outline: 'none',
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                    boxShadow: showSuggestions ? '0 4px 20px rgba(99, 102, 241, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)'
+                    resize: 'none',
+                    overflow: 'hidden',
+                    minHeight: '54px',
+                    maxHeight: '120px',
+                    lineHeight: '1.4',
+                    boxShadow: '0 4px 20px rgba(99, 102, 241, 0.15)'
                   }}
                   placeholder="Enter your address, neighborhood, or landmark..."
                 />
@@ -707,6 +851,7 @@ const LocationConfirm: React.FC = () => {
                   <div style={{
                     position: 'absolute',
                     right: '16px',
+                    top: '16px',
                     zIndex: 1
                   }}>
                     <div style={{
@@ -720,86 +865,97 @@ const LocationConfirm: React.FC = () => {
                   </div>
                 )}
               </div>
+            </motion.div>
 
-              {/* Autocomplete Suggestions - Now contained within the card */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div
-                  ref={suggestionsRef}
-                  style={{
-                    backgroundColor: 'var(--background)',
-                    border: '2px solid var(--primary-color)',
-                    borderTop: 'none',
-                    borderRadius: '0 0 12px 12px',
-                    maxHeight: '210px',
-                    overflowY: 'auto',
-                    boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={suggestion.place_id}
-                      onClick={() => handleSuggestionSelect(suggestion)}
-                      style={{
-                        padding: '16px 20px',
-                        cursor: 'pointer',
-                        backgroundColor: index === selectedSuggestionIndex ? 'var(--primary-color)' : 'transparent',
-                        color: index === selectedSuggestionIndex ? 'white' : 'var(--text-primary)',
-                        borderBottom: index < suggestions.length - 1 ? '1px solid var(--border-color)' : 'none',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '12px'
-                      }}
-                      onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                      onMouseLeave={() => setSelectedSuggestionIndex(-1)}
-                    >
-                      <MapPin 
-                        size={16} 
-                        style={{ 
-                          marginTop: '2px',
-                          color: index === selectedSuggestionIndex ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)',
-                          flexShrink: 0
-                        }} 
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ 
-                          fontWeight: '500', 
-                          fontSize: '15px',
-                          marginBottom: '2px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                          {suggestion.structured_formatting.main_text}
-                        </div>
-                        <div style={{ 
-                          fontSize: '13px', 
-                          color: index === selectedSuggestionIndex ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                          {suggestion.structured_formatting.secondary_text}
-                        </div>
+            {/* Suggestions List - Full remaining space */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              ref={suggestionsRef}
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                backgroundColor: 'var(--background)'
+              }}
+            >
+              {suggestions.length > 0 ? (
+                suggestions.map((suggestion, index) => (
+                  <motion.div
+                    key={suggestion.place_id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                    style={{
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      backgroundColor: index === selectedSuggestionIndex ? 'var(--primary-color)' : 'transparent',
+                      color: index === selectedSuggestionIndex ? 'white' : 'var(--text-primary)',
+                      borderBottom: '1px solid var(--border-color)',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px'
+                    }}
+                    onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                    onMouseLeave={() => setSelectedSuggestionIndex(-1)}
+                  >
+                    <MapPin 
+                      size={18} 
+                      style={{ 
+                        marginTop: '2px',
+                        color: index === selectedSuggestionIndex ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)',
+                        flexShrink: 0
+                      }} 
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ 
+                        fontWeight: '500', 
+                        fontSize: '16px',
+                        marginBottom: '4px'
+                      }}>
+                        {suggestion.structured_formatting.main_text}
+                      </div>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: index === selectedSuggestionIndex ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)'
+                      }}>
+                        {suggestion.structured_formatting.secondary_text}
                       </div>
                     </div>
-                  ))}
+                  </motion.div>
+                ))
+              ) : location.length > 0 && !isLoadingSuggestions ? (
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
+                  <div style={{ fontSize: '15px' }}>
+                    {location.length < 2 ? 'Type at least 2 characters to search' : 'No suggestions found'}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <MapPin size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
+                  <div style={{ fontSize: '15px', marginBottom: '8px' }}>
+                    Start typing to search for a location
+                  </div>
+                  <div style={{ fontSize: '13px', opacity: 0.8 }}>
+                    Streets, neighborhoods, landmarks, cities...
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
-
-          <p style={{ 
-            textAlign: 'center', 
-            fontSize: '12px', 
-            color: 'var(--text-secondary)',
-            marginTop: '32px',
-            marginBottom: '80px'
-          }}>
-            Locations are used to generate tours and are never stored or shared.
-          </p>
-        </motion.div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div style={{
         position: 'fixed',
@@ -809,7 +965,8 @@ const LocationConfirm: React.FC = () => {
         width: '100%',
         maxWidth: '430px',
         padding: '20px',
-        backgroundColor: 'var(--background)'
+        backgroundColor: 'var(--background)',
+        zIndex: isInputExpanded ? 0 : 100
       }}>
         <button 
           className="btn btn-primary"

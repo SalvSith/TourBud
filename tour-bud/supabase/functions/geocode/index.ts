@@ -88,11 +88,30 @@ serve(async (req) => {
     let city = '';
     let country = '';
 
+    // For "area" (suburb/neighborhood), check multiple types in priority order:
+    // 1. sublocality_level_1 - most specific suburb (e.g., "St Andrews")
+    // 2. sublocality - general suburb
+    // 3. neighborhood - neighborhood within a city
+    // 4. administrative_area_level_3 - sometimes used for suburbs
+    const sublocalityLevel1 = addressComponents.find((comp: any) => comp.types.includes('sublocality_level_1'));
+    const sublocality = addressComponents.find((comp: any) => comp.types.includes('sublocality'));
     const neighborhood = addressComponents.find((comp: any) => comp.types.includes('neighborhood'));
+    const adminArea3 = addressComponents.find((comp: any) => comp.types.includes('administrative_area_level_3'));
+    
+    // Use the most specific one available
+    if (sublocalityLevel1) {
+      area = sublocalityLevel1.long_name;
+    } else if (sublocality) {
+      area = sublocality.long_name;
+    } else if (neighborhood) {
+      area = neighborhood.long_name;
+    } else if (adminArea3) {
+      area = adminArea3.long_name;
+    }
+
     const locality = addressComponents.find((comp: any) => comp.types.includes('locality'));
     const countryComp = addressComponents.find((comp: any) => comp.types.includes('country'));
 
-    if (neighborhood) area = neighborhood.long_name;
     if (locality) city = locality.long_name;
     if (countryComp) country = countryComp.long_name;
 
