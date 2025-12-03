@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, MapPin, ExternalLink, BookOpen } from 'lucide-react';
+import { Play, Pause, MapPin, ExternalLink, BookOpen, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
@@ -455,6 +455,12 @@ Your personalized tour will include fascinating historical stories, architectura
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <Play size={16} />
               <span style={{ fontSize: '14px' }}>{tourInfo.plays.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <Calendar size={16} />
+              <span style={{ fontSize: '14px' }}>
+                {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/')}
+              </span>
             </div>
           </div>
         </motion.div>

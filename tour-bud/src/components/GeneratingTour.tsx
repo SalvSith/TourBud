@@ -249,7 +249,7 @@ const GeneratingTour: React.FC = () => {
                 color: 'var(--text-primary)',
                 margin: 0
               }}>
-                Researching History
+                Researching Location
               </h2>
             </div>
             <p style={{ 
