@@ -15,20 +15,18 @@ interface CreditPackage {
 const BuyCredits: React.FC = () => {
   const navigate = useNavigate();
   const [selectedPackage, setSelectedPackage] = useState<string>('');
-  const [purchaseType, setPurchaseType] = useState<'subscription' | 'once-off'>('subscription');
+  const [purchaseType, setPurchaseType] = useState<'subscription' | 'once-off'>('once-off');
   
   const onceOffPackages: CreditPackage[] = [
     { id: '1', credits: 1, price: 2.99 },
     { id: '2', credits: 3, price: 7.99, popular: true },
-    { id: '3', credits: 10, price: 19.99 },
-    { id: '4', credits: 50, price: 79.99 }
+    { id: '3', credits: 10, price: 19.99 }
   ];
 
   const subscriptionPackages: CreditPackage[] = [
     { id: 'sub1', credits: 2, price: 4.99 },
     { id: 'sub2', credits: 5, price: 9.99, popular: true },
-    { id: 'sub3', credits: 15, price: 24.99 },
-    { id: 'sub4', credits: 30, price: 39.99 }
+    { id: 'sub3', credits: 15, price: 24.99 }
   ];
 
   const currentPackages = purchaseType === 'subscription' ? subscriptionPackages : onceOffPackages;
@@ -75,46 +73,6 @@ const BuyCredits: React.FC = () => {
           >
             <button
               onClick={() => {
-                setPurchaseType('subscription');
-                setSelectedPackage('');
-              }}
-              style={{
-                flex: 1,
-                padding: '12px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                backgroundColor: purchaseType === 'subscription' ? 'var(--primary-color)' : 'transparent',
-                color: purchaseType === 'subscription' ? 'white' : 'var(--text-primary)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {purchaseType === 'subscription' && (
-                <motion.div
-                  layoutId="segmented-toggle"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'var(--primary-color)',
-                    borderRadius: '8px',
-                    zIndex: 0
-                  }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                />
-              )}
-              <span style={{ position: 'relative', zIndex: 1 }}>
-                Subscription
-              </span>
-            </button>
-            <button
-              onClick={() => {
                 setPurchaseType('once-off');
                 setSelectedPackage('');
               }}
@@ -151,6 +109,46 @@ const BuyCredits: React.FC = () => {
               )}
               <span style={{ position: 'relative', zIndex: 1 }}>
                 Once off
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setPurchaseType('subscription');
+                setSelectedPackage('');
+              }}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                backgroundColor: purchaseType === 'subscription' ? 'var(--primary-color)' : 'transparent',
+                color: purchaseType === 'subscription' ? 'white' : 'var(--text-primary)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {purchaseType === 'subscription' && (
+                <motion.div
+                  layoutId="segmented-toggle"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'var(--primary-color)',
+                    borderRadius: '8px',
+                    zIndex: 0
+                  }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+              <span style={{ position: 'relative', zIndex: 1 }}>
+                Subscription
               </span>
             </button>
           </motion.div>

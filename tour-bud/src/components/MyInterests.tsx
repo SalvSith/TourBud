@@ -52,11 +52,16 @@ const MyInterests: React.FC = () => {
   ];
 
   const toggleInterest = (id: string) => {
-    setSelectedInterests(prev => 
-      prev.includes(id) 
-        ? prev.filter(i => i !== id)
-        : [...prev, id]
-    );
+    setSelectedInterests(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(i => i !== id);
+      }
+      // Limit to 3 max
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   return (
@@ -83,7 +88,7 @@ const MyInterests: React.FC = () => {
               margin: 0,
               lineHeight: '1.5'
             }}>
-              Select your interests to personalize your tour recommendations
+              Select up to 3 interests to personalize your tour recommendations
             </p>
           </div>
           
@@ -128,7 +133,7 @@ const MyInterests: React.FC = () => {
               color: 'var(--text-primary)',
               margin: '0 0 8px 0'
             }}>
-              {selectedInterests.length} Interest{selectedInterests.length !== 1 ? 's' : ''} Selected
+              {selectedInterests.length}/3 Interest{selectedInterests.length !== 1 ? 's' : ''} Selected
             </h3>
             <p style={{
               fontSize: '14px',
