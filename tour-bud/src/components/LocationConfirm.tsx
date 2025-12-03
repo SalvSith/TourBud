@@ -723,9 +723,16 @@ const LocationConfirm: React.FC = () => {
               backgroundColor: 'var(--background)',
               zIndex: 1000,
               display: 'flex',
-              flexDirection: 'column'
+              justifyContent: 'center'
             }}
           >
+            <div style={{
+              width: '100%',
+              maxWidth: '430px',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--background)'
+            }}>
             {/* Header - matches main screen style */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
@@ -925,6 +932,7 @@ const LocationConfirm: React.FC = () => {
                 </div>
               )}
             </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
