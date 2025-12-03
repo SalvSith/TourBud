@@ -132,26 +132,7 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   return (
     <div className="app">
       <div className="header">
-        {/* TB Logo on the left */}
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '8px',
-          backgroundColor: 'var(--primary-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '16px',
-          fontWeight: '700',
-          color: 'white',
-          flexShrink: 0
-        }}>
-          TB
-        </div>
-
-        <div className="header-title"></div> {/* Empty title to maintain spacing */}
-
-        {/* Right side: Credits, Profile, Theme Toggle */}
+        {/* Left side: Credits and TB Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div 
             onClick={() => navigate('/buy-credits')}
@@ -185,6 +166,27 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
             {credits}
           </div>
 
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            backgroundColor: 'var(--primary-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            fontWeight: '700',
+            color: 'white',
+            flexShrink: 0
+          }}>
+            TB
+          </div>
+        </div>
+
+        <div className="header-title"></div> {/* Empty title to maintain spacing */}
+
+        {/* Right side: Profile and Theme Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <div 
               onClick={toggleDropdown}
