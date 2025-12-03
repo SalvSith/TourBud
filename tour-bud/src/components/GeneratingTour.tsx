@@ -32,7 +32,7 @@ const GeneratingTour: React.FC = () => {
     {
       id: 1,
       title: "Searching",
-      description: "Finding information about your location and places",
+      description: "Finding info about your location and places",
       icon: <Search size={24} />,
     },
     {

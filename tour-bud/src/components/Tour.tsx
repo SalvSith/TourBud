@@ -7,7 +7,7 @@ import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
 
 // Simple markdown renderer for tour content
-const renderMarkdown = (text: string): React.ReactNode => {
+const renderMarkdown = (text: string, onCitationClick?: (index: number) => void): React.ReactNode => {
   if (!text) return null;
   
   const lines = text.split('\n');
@@ -27,20 +27,53 @@ const renderMarkdown = (text: string): React.ReactNode => {
   };
   
   const renderInlineMarkdown = (line: string): React.ReactNode => {
-    // Handle bold **text** and __text__
+    // Handle bold **text** and __text__ AND citations [1], [2], etc.
     const parts: React.ReactNode[] = [];
     let remaining = line;
     let keyIndex = 0;
     
     while (remaining.length > 0) {
-      // Check for bold
+      // Check for citations [1], [2], [3] etc. OR bold
+      const citationMatch = remaining.match(/\[(\d+)\]/);
       const boldMatch = remaining.match(/\*\*(.+?)\*\*|__(.+?)__/);
-      if (boldMatch && boldMatch.index !== undefined) {
-        // Add text before the match
+      
+      // Find which comes first
+      const citationIndex = citationMatch?.index ?? Infinity;
+      const boldIndex = boldMatch?.index ?? Infinity;
+      
+      if (citationIndex < boldIndex && citationMatch && citationMatch.index !== undefined) {
+        // Citation comes first
+        if (citationMatch.index > 0) {
+          parts.push(remaining.substring(0, citationMatch.index));
+        }
+        const citationNum = parseInt(citationMatch[1], 10);
+        parts.push(
+          <span
+            key={keyIndex++}
+            onClick={() => onCitationClick?.(citationNum - 1)}
+            style={{
+              fontSize: '11px',
+              color: 'var(--primary-color)',
+              cursor: 'pointer',
+              verticalAlign: 'super',
+              fontWeight: '500',
+              opacity: 0.8,
+              transition: 'opacity 0.2s',
+              padding: '0 1px'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+            title={`View source ${citationNum}`}
+          >
+            [{citationNum}]
+          </span>
+        );
+        remaining = remaining.substring(citationMatch.index + citationMatch[0].length);
+      } else if (boldIndex < citationIndex && boldMatch && boldMatch.index !== undefined) {
+        // Bold comes first
         if (boldMatch.index > 0) {
           parts.push(remaining.substring(0, boldMatch.index));
         }
-        // Add bold text
         parts.push(
           <strong key={keyIndex++}>{boldMatch[1] || boldMatch[2]}</strong>
         );
@@ -169,6 +202,24 @@ const Tour: React.FC = () => {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const sourceRefs = React.useRef<(HTMLAnchorElement | null)[]>([]);
+
+  // Handle citation click - scroll to the source
+  const handleCitationClick = (index: number) => {
+    const sourceElement = sourceRefs.current[index];
+    if (sourceElement) {
+      sourceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight briefly
+      sourceElement.style.transform = 'scale(1.02)';
+      sourceElement.style.borderColor = 'var(--primary-color)';
+      sourceElement.style.boxShadow = '0 4px 20px rgba(99, 102, 241, 0.3)';
+      setTimeout(() => {
+        sourceElement.style.transform = '';
+        sourceElement.style.borderColor = '';
+        sourceElement.style.boxShadow = '';
+      }, 2000);
+    }
+  };
 
   // Get tour data from navigation state
   const { tourData, location: tourLocation } = location.state || {};
@@ -412,7 +463,7 @@ Your personalized tour will include fascinating historical stories, architectura
             fontSize: '16px',
             color: 'var(--text-primary)'
           }}>
-            {renderMarkdown(tourContent)}
+            {renderMarkdown(tourContent, handleCitationClick)}
           </div>
         </motion.div>
 
@@ -442,11 +493,14 @@ Your personalized tour will include fascinating historical stories, architectura
               </h3>
             </div>
             
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
+            <div 
+              id="sources-section"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
               {sources.map((source, index) => {
                 // Extract domain from URL for display
                 let domain = '';
@@ -463,6 +517,7 @@ Your personalized tour will include fascinating historical stories, architectura
                 return (
                   <a
                     key={index}
+                    ref={(el) => { sourceRefs.current[index] = el; }}
                     href={source}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -475,7 +530,7 @@ Your personalized tour will include fascinating historical stories, architectura
                       borderRadius: '12px',
                       border: '1px solid var(--border-color)',
                       textDecoration: 'none',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.3s ease',
                       cursor: 'pointer'
                     }}
                     onMouseEnter={(e) => {
@@ -490,9 +545,9 @@ Your personalized tour will include fascinating historical stories, architectura
                     }}
                   >
                     <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
                       backgroundColor: 'var(--primary-color)',
                       display: 'flex',
                       alignItems: 'center',
@@ -501,7 +556,7 @@ Your personalized tour will include fascinating historical stories, architectura
                     }}>
                       <span style={{ 
                         color: 'white', 
-                        fontSize: '14px', 
+                        fontSize: '12px', 
                         fontWeight: '600' 
                       }}>
                         {index + 1}
@@ -510,7 +565,7 @@ Your personalized tour will include fascinating historical stories, architectura
                     
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: '14px',
+                        fontSize: '13px',
                         fontWeight: '600',
                         color: 'var(--text-primary)',
                         marginBottom: '2px'
@@ -518,7 +573,7 @@ Your personalized tour will include fascinating historical stories, architectura
                         {domain}
                       </div>
                       <div style={{
-                        fontSize: '12px',
+                        fontSize: '11px',
                         color: 'var(--text-secondary)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -529,7 +584,7 @@ Your personalized tour will include fascinating historical stories, architectura
                     </div>
                     
                     <ExternalLink 
-                      size={16} 
+                      size={14} 
                       style={{ 
                         color: 'var(--text-secondary)',
                         flexShrink: 0
