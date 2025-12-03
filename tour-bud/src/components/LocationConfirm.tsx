@@ -540,9 +540,6 @@ const LocationConfirm: React.FC = () => {
                 {window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && (
                   <span style={{ color: 'var(--error-color)' }}>⚠️ HTTPS required for location • </span>
                 )}
-                {/iPad|iPhone|iPod/.test(navigator.userAgent) && (
-                  <span>📱 iOS Safari detected • </span>
-                )}
                 {!navigator.geolocation && (
                   <span style={{ color: 'var(--error-color)' }}>❌ Geolocation not supported • </span>
                 )}
