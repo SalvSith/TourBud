@@ -349,39 +349,39 @@ ${nearbyList}`;
     const wordCount = combinedNarration.split(/\s+/).length;
     const estimatedDuration = Math.round(wordCount / 150);
     
-    // Format interests with proper title case
-    const formatInterest = (interest: string) => {
-      return interest.split(' ').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      ).join(' ');
-    };
-    const formattedInterests = interests.map(formatInterest).join(' & ');
+    // Format interests as lowercase for description
+    const formattedInterests = interests.join(' & ').toLowerCase();
+
+    // Use street name if available, otherwise use area name
+    const locationName = streetName || areaName;
 
     // Random creative title templates
     const titleTemplates = [
-      `${streetName} Uncovered`,
-      `Discovering ${streetName}`,
-      `The Story of ${streetName}`,
-      `${streetName}: A Journey`,
-      `Walking ${streetName}`,
-      `${streetName} Revealed`,
-      `Secrets of ${streetName}`,
-      `${streetName}: Past & Present`,
-      `Exploring ${streetName}`,
-      `${streetName} Chronicles`,
-      `Tales from ${streetName}`,
-      `${streetName}: Hidden History`,
-      `Journey Through ${streetName}`,
-      `${streetName} Explored`,
-      `Legends of ${streetName}`,
-      `${streetName}: Untold Stories`,
-      `Inside ${streetName}`,
-      `${streetName}: A Discovery`,
-      `Mysteries of ${streetName}`,
-      `${streetName}: Then & Now`
+      `${locationName} Uncovered`,
+      `Discovering ${locationName}`,
+      `The Story of ${locationName}`,
+      `${locationName}: A Journey`,
+      `Walking ${locationName}`,
+      `${locationName} Revealed`,
+      `Secrets of ${locationName}`,
+      `${locationName}: Past & Present`,
+      `Exploring ${locationName}`,
+      `${locationName} Chronicles`,
+      `Tales from ${locationName}`,
+      `${locationName}: Hidden History`,
+      `Journey Through ${locationName}`,
+      `${locationName} Explored`,
+      `Legends of ${locationName}`,
+      `${locationName}: Untold Stories`,
+      `Inside ${locationName}`,
+      `${locationName}: A Discovery`,
+      `Mysteries of ${locationName}`,
+      `${locationName}: Then & Now`
     ];
     const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)];
-    const description = `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}.`;
+    const description = streetName 
+      ? `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}.`
+      : `A ${formattedInterests}-focused tour of ${areaName}.`;
     
     console.log(`📝 Tour generated: ${wordCount} words, ${estimatedDuration} min, ${allCitations.length} sources`);
 
