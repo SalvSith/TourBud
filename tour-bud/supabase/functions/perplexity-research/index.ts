@@ -368,7 +368,17 @@ ${nearbyList}`;
       `Secrets of ${streetName}`,
       `${streetName}: Past & Present`,
       `Exploring ${streetName}`,
-      `${streetName} Chronicles`
+      `${streetName} Chronicles`,
+      `Tales from ${streetName}`,
+      `${streetName}: Hidden History`,
+      `Journey Through ${streetName}`,
+      `${streetName} Explored`,
+      `Legends of ${streetName}`,
+      `${streetName}: Untold Stories`,
+      `Inside ${streetName}`,
+      `${streetName}: A Discovery`,
+      `Mysteries of ${streetName}`,
+      `${streetName}: Then & Now`
     ];
     const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)];
     const description = `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}.`;
