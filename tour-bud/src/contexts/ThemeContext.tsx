@@ -43,9 +43,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
-    // Apply theme to document with smoother transition
-    document.documentElement.style.setProperty('--transition-duration', '0.3s');
-    
     try {
       if (isDarkMode) {
         document.documentElement.setAttribute('data-theme', 'dark');
