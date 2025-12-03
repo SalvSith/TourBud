@@ -693,7 +693,7 @@ const LocationConfirm: React.FC = () => {
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap'
               }}>
-                {location || 'Enter your address, neighborhood, or landmark...'}
+                {location || 'Enter an address to tour'}
               </span>
             </div>
           </div>
@@ -764,7 +764,8 @@ const LocationConfirm: React.FC = () => {
                   style={{
                     position: 'absolute',
                     left: '16px',
-                    top: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     zIndex: 1,
                     cursor: isRequestingLocation ? 'not-allowed' : 'pointer',
                     display: 'flex',
@@ -818,14 +819,15 @@ const LocationConfirm: React.FC = () => {
                     lineHeight: '1.4',
                     boxShadow: '0 4px 20px rgba(99, 102, 241, 0.15)'
                   }}
-                  placeholder="Enter your address, neighborhood, or landmark..."
+                  placeholder="Enter an address to tour"
                 />
                 
                 {isLoadingSuggestions && (
                   <div style={{
                     position: 'absolute',
                     right: '16px',
-                    top: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     zIndex: 1
                   }}>
                     <div style={{
