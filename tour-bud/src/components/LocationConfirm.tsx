@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, X } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
@@ -730,44 +730,18 @@ const LocationConfirm: React.FC = () => {
               flexDirection: 'column'
             }}
           >
-            {/* Header */}
+            {/* Header - matches main screen style */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--border-color)',
-                gap: '12px'
-              }}
+              className="header"
+              style={{ position: 'relative' }}
             >
-              <button
-                onClick={handleCloseExpandedInput}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  transition: 'background-color 0.2s ease'
-                }}
-              >
-                <X size={24} />
-              </button>
-              <h3 style={{ 
-                margin: 0, 
-                fontSize: '18px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                Search Location
-              </h3>
+              <BackButton onClick={handleCloseExpandedInput} />
+              <h2 className="header-title">Search Location</h2>
+              {/* Empty spacer to balance the header */}
+              <div style={{ width: '36px', height: '36px' }} />
             </motion.div>
 
             {/* Input Area */}
