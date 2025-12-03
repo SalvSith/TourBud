@@ -351,7 +351,7 @@ ${nearbyList}`;
     const formattedInterests = interests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(' & ');
 
     const title = `${streetName}, ${areaName}`;
-    const description = `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}, ${city}. ${estimatedDuration} min read.`;
+    const description = `A ${formattedInterests}-focused tour of ${streetName} in ${areaName}, ${city}.`;
     
     console.log(`📝 Tour generated: ${wordCount} words, ${estimatedDuration} min, ${allCitations.length} sources`);
 
