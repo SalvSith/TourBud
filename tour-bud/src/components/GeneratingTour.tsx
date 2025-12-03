@@ -38,7 +38,7 @@ const GeneratingTour: React.FC = () => {
     {
       id: 2,
       title: "Researching",
-      description: "Reading through sources and gathering facts",
+      description: "Reading sources and gathering facts",
       icon: <Globe size={24} />,
     },
     {

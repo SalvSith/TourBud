@@ -546,7 +546,6 @@ const LocationConfirm: React.FC = () => {
                 {!navigator.geolocation && (
                   <span style={{ color: 'var(--error-color)' }}>❌ Geolocation not supported • </span>
                 )}
-                <span>Protocol: {window.location.protocol}</span>
               </div>
             </div>
           </div>
