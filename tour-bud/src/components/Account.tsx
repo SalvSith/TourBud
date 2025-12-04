@@ -242,7 +242,7 @@ const Account: React.FC = () => {
                   key={purchase.id}
                   style={{
                     padding: '12px',
-                    backgroundColor: 'var(--background)',
+                    backgroundColor: 'var(--secondary-color)',
                     borderRadius: '10px',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
@@ -277,8 +277,8 @@ const Account: React.FC = () => {
                         marginLeft: '6px',
                         padding: '2px 6px',
                         backgroundColor: purchase.type === 'subscription' 
-                          ? 'rgba(99, 102, 241, 0.1)' 
-                          : 'rgba(34, 197, 94, 0.1)',
+                          ? 'rgba(99, 102, 241, 0.2)' 
+                          : 'rgba(34, 197, 94, 0.2)',
                         color: purchase.type === 'subscription' 
                           ? '#6366F1' 
                           : '#22C55E',
