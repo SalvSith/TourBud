@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Play, Pause, MapPin, ExternalLink, BookOpen, Calendar, VolumeX, SkipBack, SkipForward, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
 import tourService from '../services/tourService';
@@ -570,7 +570,7 @@ Your personalized tour will include fascinating historical stories, architectura
         <div className="header">
           <BackButton onClick={() => navigate('/')} />
           <h3 className="header-title">Loading Tour</h3>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
         <div className="container flex-center" style={{ height: '50vh' }}>
           <div style={{ textAlign: 'center' }}>
@@ -589,7 +589,7 @@ Your personalized tour will include fascinating historical stories, architectura
         <h3 className="header-title">
           Your Tour
         </h3>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div className="container">

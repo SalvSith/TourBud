@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 import { SUPABASE_CONFIG } from '../config/supabase';
 
@@ -473,7 +473,7 @@ const LocationConfirm: React.FC = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">Tour Location</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
       
       <div className="container">

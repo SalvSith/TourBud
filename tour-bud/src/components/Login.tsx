@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 
 const Login: React.FC = () => {
   const { isDarkMode } = useTheme();
@@ -16,7 +16,7 @@ const Login: React.FC = () => {
       <div className="header">
         <div></div> {/* Empty div for spacing */}
         <div className="header-title"></div>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div className="container">

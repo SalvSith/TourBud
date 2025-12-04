@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 
 interface CreditPackage {
@@ -42,7 +42,7 @@ const BuyCredits: React.FC = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">Buy Tours</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div className="container">

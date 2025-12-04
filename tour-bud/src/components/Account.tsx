@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, User, Mail, Save, Receipt, Calendar } from 'lucide-react';
+import { User, Mail, Save, Receipt } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 
 // Dummy purchase history data
@@ -46,7 +46,7 @@ const dummyPurchases = [
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState('Peter Smith');
+  const [firstName, setFirstName] = useState('Peter');
   const [email] = useState('peter.smith@gmail.com'); // Read-only from Google
   const [isEditing, setIsEditing] = useState(false);
 
@@ -57,18 +57,12 @@ const Account: React.FC = () => {
     // In a real app, you'd make an API call here
   };
 
-  const handleProfilePictureChange = () => {
-    // Placeholder for profile picture change
-
-    // In a real app, you'd open a file picker or camera
-  };
-
   return (
     <div className="app">
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">My Account</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
       
       <div className="container">
@@ -77,48 +71,6 @@ const Account: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Profile Picture Section */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: '40px'
-          }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--secondary-color)',
-                backgroundImage: `url("https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=6366F1&color=fff&size=100")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                border: '4px solid var(--border-color)'
-              }} />
-              
-              <button
-                onClick={handleProfilePictureChange}
-                style={{
-                  position: 'absolute',
-                  bottom: '0',
-                  right: '0',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--primary-color)',
-                  border: '2px solid var(--background)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                className="profile-picture-button-hover"
-              >
-                <Camera size={16} color="white" />
-              </button>
-            </div>
-          </div>
-
           {/* Form Section */}
           <div style={{
             backgroundColor: 'var(--card-background)',
@@ -127,7 +79,7 @@ const Account: React.FC = () => {
             border: '1px solid var(--border-color)',
             marginBottom: '24px'
           }}>
-            {/* Full Name Field */}
+            {/* First Name Field */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{
                 display: 'block',
@@ -137,12 +89,12 @@ const Account: React.FC = () => {
                 marginBottom: '8px'
               }}>
                 <User size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                Full Name
+                First Name
               </label>
               <input
                 type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
                 disabled={!isEditing}
                 style={{
                   width: '100%',

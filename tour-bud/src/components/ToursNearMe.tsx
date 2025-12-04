@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 
 interface NearbyTour {
@@ -31,7 +31,7 @@ const ToursNearMe: React.FC = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">Tours Near Me</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div className="container">

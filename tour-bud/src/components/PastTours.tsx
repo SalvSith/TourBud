@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Calendar, Loader2, FolderOpen } from 'lucide-react';
+import { MapPin, Clock, Calendar, FolderOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 import tourService from '../services/tourService';
 
@@ -73,19 +73,12 @@ const PastTours: React.FC = () => {
         <div className="header">
           <BackButton onClick={() => navigate('/')} />
           <h2 className="header-title">My Tour Collection</h2>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
-        <div className="container">
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px 20px',
-            color: 'var(--text-secondary)'
-          }}>
-            <Loader2 size={40} className="spinning" style={{ marginBottom: '16px' }} />
-            <p>Loading your tours...</p>
+        <div className="container flex-center" style={{ height: '50vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>Loading your tours...</p>
           </div>
         </div>
       </div>
@@ -99,7 +92,7 @@ const PastTours: React.FC = () => {
         <div className="header">
           <BackButton onClick={() => navigate('/')} />
           <h2 className="header-title">My Tour Collection</h2>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
         <div className="container">
           <div style={{
@@ -131,7 +124,7 @@ const PastTours: React.FC = () => {
         <div className="header">
           <BackButton onClick={() => navigate('/')} />
           <h2 className="header-title">My Tour Collection</h2>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
         <div className="container">
           <motion.div
@@ -183,7 +176,7 @@ const PastTours: React.FC = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">My Tour Collection</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div className="container">

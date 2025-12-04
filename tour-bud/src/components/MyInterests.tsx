@@ -1,26 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Book, 
-  Briefcase, 
-  Brain, 
-  Heart, 
-  Palette, 
-  Microscope, 
-  Globe, 
-  Baby, 
-  Plane, 
-  Rocket, 
-  Drama, 
-  Users, 
-  BookOpen, 
-  Coffee,
-  Sparkles,
-  History,
-  Camera
-} from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import BackButton from './BackButton';
 import { Interest } from '../types';
 
@@ -69,7 +50,7 @@ const MyInterests: React.FC = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/')} />
         <h2 className="header-title">Interests</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
       
       <div className="container">

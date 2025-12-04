@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Clock, CreditCard, MoreHorizontal, ChevronDown, MapPin, Camera, Sparkles, LogOut, User, Settings, UserCog, Calendar } from 'lucide-react';
+import { Play, Clock, CreditCard, MapPin, Calendar, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 
 interface HomeProps {
   userName: string;
@@ -21,8 +21,6 @@ interface NearbyTour {
 
 const Home: React.FC<HomeProps> = ({ userName, credits }) => {
   const navigate = useNavigate();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const mainCards = [
     {
@@ -105,35 +103,10 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    // Placeholder for logout functionality
-
-    setIsDropdownOpen(false);
-    navigate('/login');
-  };
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
-
   return (
     <div className="app">
       <div className="header">
-        {/* Left side: TB Logo and Credits */}
+        {/* Left side: TB Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '36px',
@@ -150,185 +123,12 @@ const Home: React.FC<HomeProps> = ({ userName, credits }) => {
           }}>
             TB
           </div>
-
-          <div 
-            onClick={() => navigate('/buy-credits')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'var(--secondary-color)',
-              padding: '8px 12px',
-              borderRadius: '20px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              flexShrink: 0
-            }}
-            className="credits-badge-hover"
-          >
-            <div style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{ fontSize: '10px', color: 'white' }}>💎</span>
-            </div>
-            {credits}
-          </div>
         </div>
 
         <div className="header-title"></div> {/* Empty title to maintain spacing */}
 
-        {/* Right side: Profile and Theme Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <div 
-              onClick={toggleDropdown}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--secondary-color)',
-                backgroundImage: 'url("https://ui-avatars.com/api/?name=' + userName + '&background=6366F1&color=fff")',
-                backgroundSize: 'cover',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                border: isDropdownOpen ? '2px solid var(--primary-color)' : '2px solid transparent',
-                flexShrink: 0
-              }}
-            />
-            
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  position: 'absolute',
-                  top: '45px',
-                  right: '0',
-                  minWidth: '200px',
-                  backgroundColor: 'var(--card-background)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-                  zIndex: 1000,
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{ padding: '12px 0' }}>
-                  <div style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--border-color)',
-                    marginBottom: '8px'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px'
-                    }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--secondary-color)',
-                        backgroundImage: 'url("https://ui-avatars.com/api/?name=' + userName + '&background=6366F1&color=fff")',
-                        backgroundSize: 'cover'
-                      }} />
-                      <div>
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: 'var(--text-primary)'
-                        }}>
-                          {userName}
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: 'var(--text-secondary)'
-                        }}>
-                          {credits} credits
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{
-                    padding: '8px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)'
-                  }}
-                  className="dropdown-item"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate('/account');
-                  }}
-                  >
-                    <UserCog size={16} />
-                    Account
-                  </div>
-                  
-                  <div style={{
-                    padding: '8px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)'
-                  }}
-                  className="dropdown-item"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate('/my-interests');
-                  }}
-                  >
-                    <Sparkles size={16} />
-                    Interests
-                  </div>
-                  
-                  <div style={{
-                    padding: '8px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--error-color)',
-                    marginTop: '8px',
-                    borderTop: '1px solid var(--border-color)'
-                  }}
-                  className="dropdown-item-danger"
-                  onClick={handleLogout}
-                  >
-                    <LogOut size={16} />
-                    Logout
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
-          <ThemeToggle />
-        </div>
+        {/* Right side: Burger Menu */}
+        <BurgerMenu userName={userName} credits={credits} showUserInfo={true} />
       </div>
 
       <div className="container">

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import BackButton from './BackButton';
-import ThemeToggle from './ThemeToggle';
+import BurgerMenu from './BurgerMenu';
 import tourService from '../services/tourService';
 import FindingPlacesLoader from './FindingPlacesLoader';
 
@@ -353,7 +353,7 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
         <div className="header">
           <BackButton onClick={() => navigate('/interests')} />
           <h2 className="header-title">Finding Places</h2>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
         
         <FindingPlacesLoader 
@@ -369,7 +369,7 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
         <div className="header">
           <BackButton onClick={() => navigate('/interests')} />
           <h2 className="header-title">Places</h2>
-          <ThemeToggle />
+          <BurgerMenu />
         </div>
         
         <div className="error-container">
@@ -387,7 +387,7 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
       <div className="header">
         <BackButton onClick={() => navigate('/interests')} />
         <h2 className="header-title">Select Places</h2>
-        <ThemeToggle />
+        <BurgerMenu />
       </div>
 
       <div style={{ padding: '0 20px 20px 20px' }}>
