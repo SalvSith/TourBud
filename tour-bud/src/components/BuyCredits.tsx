@@ -153,7 +153,7 @@ const BuyCredits: React.FC = () => {
             </button>
           </motion.div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '100px' }}>
             {currentPackages.map((pkg: CreditPackage, index: number) => (
               <motion.div
                 key={pkg.id}
@@ -226,16 +226,6 @@ const BuyCredits: React.FC = () => {
               </motion.div>
             ))}
           </div>
-
-          <p style={{ 
-            textAlign: 'center', 
-            fontSize: '12px', 
-            color: 'var(--text-secondary)',
-            marginTop: '20px',
-            marginBottom: '80px'
-          }}>
-            Secure payment powered by Stripe
-          </p>
         </motion.div>
       </div>
 
@@ -246,8 +236,9 @@ const BuyCredits: React.FC = () => {
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '430px',
-        padding: '20px',
-        backgroundColor: 'var(--background)'
+        padding: '12px 20px 66px 20px',
+        backgroundColor: 'var(--background)',
+        zIndex: 100
       }}>
         <button 
           className="btn btn-primary"
