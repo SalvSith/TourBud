@@ -741,7 +741,7 @@ Your personalized tour will include fascinating historical stories, architectura
           }}
         >
           <Play size={24} />
-          Play Tour
+          Play Audio Tour
         </motion.button>
 
         {/* Audio Player - Hidden */}
