@@ -945,7 +945,7 @@ const LocationConfirm: React.FC = () => {
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '430px',
-        padding: '12px 20px 32px 20px',
+        padding: '12px 20px 60px 20px',
         backgroundColor: 'var(--background)',
         zIndex: isInputExpanded ? 0 : 100
       }}>
