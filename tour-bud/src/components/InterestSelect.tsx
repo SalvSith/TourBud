@@ -153,8 +153,9 @@ const InterestSelect: React.FC = () => {
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '430px',
-        padding: '20px',
-        backgroundColor: 'var(--background)'
+        padding: '12px 20px 66px 20px',
+        backgroundColor: 'var(--background)',
+        zIndex: 100
       }}>
         <button 
           className="btn btn-primary"
