@@ -605,4 +605,15 @@ div[style*="opacity: 0"] {
   background-color: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+}
+
+.purchase-item-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+}
+
+.purchase-item-hover:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: var(--shadow-md);
 } 

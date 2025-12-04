@@ -1,9 +1,48 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, User, Mail, Save } from 'lucide-react';
+import { Camera, User, Mail, Save, Receipt, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import BackButton from './BackButton';
+
+// Dummy purchase history data
+const dummyPurchases = [
+  {
+    id: 1,
+    date: '2024-12-01',
+    description: 'Premium Tour Credits (50 credits)',
+    type: 'one-off',
+    amount: '$24.99'
+  },
+  {
+    id: 2,
+    date: '2024-11-15',
+    description: 'Monthly Pro Subscription',
+    type: 'subscription',
+    amount: '$9.99'
+  },
+  {
+    id: 3,
+    date: '2024-11-01',
+    description: 'Monthly Pro Subscription',
+    type: 'subscription',
+    amount: '$9.99'
+  },
+  {
+    id: 4,
+    date: '2024-10-28',
+    description: 'Tour Credits (20 credits)',
+    type: 'one-off',
+    amount: '$12.99'
+  },
+  {
+    id: 5,
+    date: '2024-10-15',
+    description: 'Starter Pack (10 credits)',
+    type: 'one-off',
+    amount: '$4.99'
+  }
+];
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
@@ -223,6 +262,105 @@ const Account: React.FC = () => {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Purchase History Section */}
+          <div style={{
+            backgroundColor: 'var(--card-background)',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <Receipt size={20} />
+              Purchase History
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {dummyPurchases.map((purchase) => (
+                <div
+                  key={purchase.id}
+                  style={{
+                    padding: '12px',
+                    backgroundColor: 'var(--background)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  className="purchase-item-hover"
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: 'var(--text-primary)',
+                      marginBottom: '3px'
+                    }}>
+                      {purchase.description}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      {new Date(purchase.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                      <span style={{
+                        marginLeft: '6px',
+                        padding: '2px 6px',
+                        backgroundColor: purchase.type === 'subscription' 
+                          ? 'rgba(99, 102, 241, 0.1)' 
+                          : 'rgba(34, 197, 94, 0.1)',
+                        color: purchase.type === 'subscription' 
+                          ? '#6366F1' 
+                          : '#22C55E',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: '500'
+                      }}>
+                        {purchase.type === 'subscription' ? 'Subscription' : 'One-off'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'nowrap',
+                    marginLeft: '12px'
+                  }}>
+                    {purchase.amount}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {dummyPurchases.length === 0 && (
+              <div style={{
+                textAlign: 'center',
+                padding: '32px',
+                color: 'var(--text-secondary)',
+                fontSize: '14px'
+              }}>
+                No purchase history yet
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
