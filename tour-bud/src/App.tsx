@@ -14,6 +14,7 @@ import Tour from './components/Tour';
 import PastTours from './components/PastTours';
 import BuyCredits from './components/BuyCredits';
 import Login from './components/Login';
+import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 function ThemeColorUpdater() {
@@ -44,6 +45,7 @@ function App() {
     <ThemeProvider>
       <ThemeColorUpdater />
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home userName={user.name} credits={user.credits} />} />
           <Route path="/location" element={<LocationConfirm />} />
