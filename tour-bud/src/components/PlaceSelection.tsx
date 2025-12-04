@@ -28,6 +28,7 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
 
   // Get data from navigation state
@@ -403,8 +404,10 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
 
 
 
-        <div className="categories-container">
-          {Object.entries(groupPlacesByCategory()).map(([mainCategory, subCategories], categoryIndex) => {
+        <div className="categories-container" style={{ marginBottom: '120px' }}>
+          {Object.entries(groupPlacesByCategory())
+            .slice(0, showAllCategories ? undefined : 4)
+            .map(([mainCategory, subCategories], categoryIndex) => {
             const isExpanded = expandedCategories.has(mainCategory);
             const totalPlaces = Object.values(subCategories).reduce((sum, places) => sum + places.length, 0);
             const selectedInMainCategory = Object.values(subCategories)
@@ -484,6 +487,31 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
               </motion.div>
             );
           })}
+          
+          {!showAllCategories && Object.entries(groupPlacesByCategory()).length > 4 && (
+            <button
+              onClick={() => setShowAllCategories(true)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: 'var(--card-background)',
+                border: '2px dashed var(--border-color)',
+                borderRadius: '12px',
+                color: 'var(--primary-color)',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <ChevronDown size={20} />
+              Show {Object.entries(groupPlacesByCategory()).length - 4} More Categories
+            </button>
+          )}
         </div>
       </div>
 
@@ -494,8 +522,9 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '430px',
-        padding: '20px',
-        backgroundColor: 'var(--background)'
+        padding: '12px 20px 66px 20px',
+        backgroundColor: 'var(--background)',
+        zIndex: 100
       }}>
         <button 
           className="btn btn-primary"
@@ -529,7 +558,6 @@ const PlaceSelection: React.FC<PlaceSelectionProps> = () => {
           display: flex;
           flex-direction: column;
           gap: 16px;
-          margin-bottom: 80px;
         }
 
         .category-section {
