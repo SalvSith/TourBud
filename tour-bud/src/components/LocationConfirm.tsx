@@ -484,11 +484,11 @@ const LocationConfirm: React.FC = () => {
         >
           <div className="text-center mb-4">
             <h2>Set Your Tour Area</h2>
-            <p>Where do you want your tour to focus on?</p>
+            <p style={{ marginBottom: '0px' }}>Where do you want your tour to focus on?</p>
           </div>
 
           {/* Use My Location Button */}
-          <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+          <div style={{ marginBottom: '20px', marginTop: '8px', textAlign: 'center' }}>
             <button
               onClick={getCurrentLocation}
               disabled={isRequestingLocation}
@@ -532,7 +532,7 @@ const LocationConfirm: React.FC = () => {
             <div style={{ 
               fontSize: '11px', 
               color: 'var(--text-secondary)',
-              marginTop: '8px',
+              marginTop: '24px',
               marginBottom: '0'
             }}>
               <div>Or enter your location manually in the search box below</div>
@@ -693,16 +693,6 @@ const LocationConfirm: React.FC = () => {
               </span>
             </div>
           </div>
-
-          <p style={{ 
-            textAlign: 'center', 
-            fontSize: '12px', 
-            color: 'var(--text-secondary)',
-            marginTop: '32px',
-            marginBottom: '80px'
-          }}>
-            Locations are used to generate tours and are never stored or shared.
-          </p>
         </motion.div>
       </div>
 
