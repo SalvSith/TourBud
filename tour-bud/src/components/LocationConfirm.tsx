@@ -482,13 +482,13 @@ const LocationConfirm: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="text-center mb-4">
+          <div className="text-center">
             <h2>Set Your Tour Area</h2>
             <p style={{ marginBottom: '0px' }}>Where do you want your tour to focus on?</p>
           </div>
 
           {/* Use My Location Button */}
-          <div style={{ marginBottom: '20px', marginTop: '8px', textAlign: 'center' }}>
+          <div style={{ marginBottom: '20px', marginTop: '24px', textAlign: 'center' }}>
             <button
               onClick={getCurrentLocation}
               disabled={isRequestingLocation}
@@ -625,7 +625,7 @@ const LocationConfirm: React.FC = () => {
             onKeyDown={(e) => e.key === 'Enter' && setIsInputExpanded(true)}
             aria-label="Enter your location"
             style={{ 
-              marginBottom: '32px', 
+              marginBottom: '70px', 
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
@@ -945,7 +945,7 @@ const LocationConfirm: React.FC = () => {
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '430px',
-        padding: '20px',
+        padding: '12px 20px 32px 20px',
         backgroundColor: 'var(--background)',
         zIndex: isInputExpanded ? 0 : 100
       }}>
