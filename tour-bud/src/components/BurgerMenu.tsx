@@ -79,13 +79,13 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ userName, credits, showUserInfo
             overflow: 'hidden'
           }}
         >
-          <div style={{ padding: '12px 0' }}>
+          <div style={{ padding: '6px 0' }}>
             {/* User Info Section - Only show if requested */}
             {showUserInfo && userName && (
               <div style={{
-                padding: '12px 16px',
+                padding: '10px 16px',
                 borderBottom: '1px solid var(--border-color)',
-                marginBottom: '8px'
+                marginBottom: '4px'
               }}>
                 <div style={{
                   display: 'flex',
@@ -123,7 +123,7 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ userName, credits, showUserInfo
             
             {/* Account Menu Item */}
             <div style={{
-              padding: '8px 16px',
+              padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -145,7 +145,7 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ userName, credits, showUserInfo
             
             {/* Theme Toggle Menu Item */}
             <div style={{
-              padding: '8px 16px',
+              padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -188,7 +188,7 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ userName, credits, showUserInfo
             
             {/* Logout Menu Item */}
             <div style={{
-              padding: '8px 16px',
+              padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -197,8 +197,9 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ userName, credits, showUserInfo
               fontSize: '14px',
               fontWeight: '500',
               color: 'var(--error-color)',
-              marginTop: '8px',
-              borderTop: '1px solid var(--border-color)'
+              marginTop: '4px',
+              borderTop: '1px solid var(--border-color)',
+              paddingTop: '14px'
             }}
             className="dropdown-item-danger"
             onClick={handleLogout}
